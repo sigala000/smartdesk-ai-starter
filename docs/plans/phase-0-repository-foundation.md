@@ -337,6 +337,8 @@ Verification performed on 2026-08-06 with Node.js 24.15.0 and npm 11.12.1:
 - Invalid-environment build using a deliberately malformed `APP_BASE_URL` — failed safely as expected, named only `APP_BASE_URL`, and did not echo the supplied value.
 - Initial staged-diff, secret, scope, and ignored-artifact review — passed. Pre-existing intentional Markdown hard breaks in `docs/09_TESTING_AND_ACCEPTANCE.md` were excluded from the whitespace-only check.
 - Initial Phase 0 commit `4dc7c1e` was pushed to `origin/main` at `https://github.com/sigala000/smartdesk-ai-starter.git`.
+- Disposable clone of `origin/main` at `7b7d75d` — passed `npm ci`, lint, strict typecheck, all 8 tests, and production build using Node.js 24.15.0 and npm 11.12.1.
+- GitHub Actions run `31094552038` for commit `7b7d75d` — completed successfully with the pinned actions and declared npm version.
 
 Implementation deviations and recoveries:
 
@@ -344,4 +346,4 @@ Implementation deviations and recoveries:
 - Registry access was restricted in the sandbox during the first clean-install attempt. After completing the cache with approved npm access, an offline `npm ci` succeeded and the complete quality suite passed from that clean install.
 - The initial attempt to start the development server was denied permission to bind `0.0.0.0:3000`; the authorized loopback-only retry succeeded.
 
-Remaining limitations are intentional: the first hosted GitHub Actions run has not yet been observed to completion, and there is no Supabase, authentication, tenant isolation implementation, dashboard, chat, OpenAI integration, API, or business workflow. Those product capabilities belong to later phases.
+Remaining limitations are intentional: there is no Supabase, authentication, tenant isolation implementation, dashboard, chat, OpenAI integration, API, or business workflow. Those product capabilities belong to later phases.
