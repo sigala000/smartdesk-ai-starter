@@ -12,7 +12,8 @@ smartdesk-ai/
 │   ├── 00_INDEX.md ... 13_CODEX_TASK_PROMPTS.md
 │   └── plans/
 │       ├── README.md
-│       └── phase-0-repository-foundation.md
+│       ├── phase-0-repository-foundation.md
+│       └── phase-1-supabase-foundation.md
 ├── lib/
 │   ├── config/
 │   │   ├── env-public.ts
@@ -21,6 +22,16 @@ smartdesk-ai/
 │   └── core/
 │       ├── errors.ts
 │       └── result.ts
+├── scripts/
+│   ├── seed-development.mjs
+│   └── test-reference-concurrency.mjs
+├── supabase/
+│   ├── migrations/
+│   ├── seeds/
+│   │   └── development.sql
+│   ├── tests/
+│   ├── config.toml
+│   └── seed.sql
 ├── tests/
 │   └── unit/
 │       ├── env.test.ts
@@ -40,4 +51,4 @@ smartdesk-ai/
 ├── tsconfig.json
 └── vitest.config.ts
 
-Only Phase 0 architectural folders exist. Later-phase folders are created when their implementation begins.
+Phase 1 adds only the database foundation. Application feature folders remain deferred until their implementation phase.

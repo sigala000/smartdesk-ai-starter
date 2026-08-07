@@ -179,3 +179,13 @@ Consequences:
 
 Superseded by:
 ```
+# Implemented Phase 1 database decisions
+
+- 2026-08-06: Tenant relationships use composite `(organization_id, id)` foreign keys, and tenant identifiers are immutable after insertion.
+- 2026-08-06: Request references use an atomic per-organization, per-UTC-year counter updated with `INSERT ... ON CONFLICT DO UPDATE ... RETURNING`; references cannot be supplied or changed by callers.
+- 2026-08-06: Database access is deny-by-default. Anonymous table access is absent, authenticated access requires an active membership, and ambiguous operational roles remain denied until a later phase defines them.
+- 2026-08-06: BuildPro configuration and approved fictional knowledge are reset-safe seed data. Operational examples are stored separately and require an explicit local-only command.
+- 2026-08-06: PostgreSQL enums and optional production extensions are deferred. Evolving values use checked text columns; pgTAP is enabled only by the test harness.
+- 2026-08-07: Used request prefixes and generated references are immutable, and request references are globally unique so tenant-prefix reuse cannot create ambiguous customer-facing identifiers.
+- 2026-08-07: Authenticated roles cannot directly create attachment metadata, request status history, or general audit events. These records require controlled server operations or database triggers that derive trusted context.
+- 2026-08-07: Tenant roots and retained operational history use restrictive deletion behavior. Destructive retention work requires an explicit future workflow rather than cascading parent deletion.

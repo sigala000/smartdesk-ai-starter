@@ -46,3 +46,56 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Use repository npm version
+        run: npm install --global npm@11.12.1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local Supabase and apply migrations
+        env:
+          SUPABASE_TELEMETRY_DISABLED: "true"
+        run: npm run db:start
+
+      - name: Reset and seed database
+        env:
+          SUPABASE_TELEMETRY_DISABLED: "true"
+        run: npm run db:reset
+
+      - name: Lint database
+        env:
+          SUPABASE_TELEMETRY_DISABLED: "true"
+        run: npm run db:lint
+
+      - name: Test schema and RLS
+        env:
+          SUPABASE_TELEMETRY_DISABLED: "true"
+        run: npm run db:test
+
+      - name: Verify generated database types
+        env:
+          SUPABASE_TELEMETRY_DISABLED: "true"
+        run: |
+          npm run db:types
+          git diff --exit-code -- lib/supabase/database.types.ts
+
+      - name: Stop local Supabase
+        if: always()
+        env:
+          SUPABASE_TELEMETRY_DISABLED: "true"
+        run: npm run db:stop

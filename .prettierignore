@@ -2,6 +2,8 @@
 coverage/
 node_modules/
 package-lock.json
+lib/supabase/database.types.ts
+supabase/.temp/
 *.tsbuildinfo
 .agent/
 docs/

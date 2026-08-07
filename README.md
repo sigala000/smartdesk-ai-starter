@@ -2,12 +2,13 @@
 
 SmartDesk AI is a planned multi-tenant customer request and follow-up platform for service companies. It will combine guided request capture, human escalation, and an employee workflow. The first validation tenant is BuildPro Cameroon, a fictional construction company.
 
-The repository currently implements **Phase 0 only**: the executable Next.js and TypeScript foundation. Supabase, authentication, customer chat, the employee dashboard, request workflows, attachments, and OpenAI are not implemented yet. The numbered documents under `docs/` remain the source of truth for future behavior.
+The repository currently implements **Phase 1**: the executable Next.js foundation plus a local, migration-driven Supabase schema and tenant-isolation policies. Employee authentication pages, customer chat, the employee dashboard, application request workflows, storage buckets, and OpenAI are not implemented yet.
 
 ## Prerequisites
 
 - Node.js 24
 - npm 11
+- Docker Desktop or another Docker-compatible runtime (for database work)
 
 The supported Node major is recorded in `.nvmrc` and `package.json`. With nvm installed:
 
@@ -51,6 +52,27 @@ npm run build
 
 Use `npm run format` to apply the repository's formatting rules. CI installs the repository's declared npm version, performs a clean install, and then runs all five checks.
 
+## Local database
+
+Start Supabase, rebuild from migrations and the production-safe BuildPro reference seed, then run database checks:
+
+```bash
+npm run db:start
+npm run db:reset
+npm run db:lint
+npm run db:test
+npm run db:types
+npm run db:stop
+```
+
+`supabase/seed.sql` contains only fictional BuildPro configuration and approved knowledge. Operational sample customers and requests are isolated in `supabase/seeds/development.sql`; it is not configured for automatic seeding. To load it against the running local stack, explicitly opt in:
+
+```bash
+ALLOW_LOCAL_SAMPLE_DATA=true npm run db:seed:development
+```
+
+The guard refuses to run unless the local Supabase database is active on a loopback address. Never apply this development fixture to a hosted project. Database types are generated from the local schema into `lib/supabase/database.types.ts`; CI fails if regeneration creates a diff.
+
 ## Environment boundary
 
 Environment variables are parsed through schemas in `lib/config/`.
@@ -75,7 +97,7 @@ Later phases will make variables required only when their integrations are imple
 
 ## Current architecture
 
-Phase 0 contains only:
+The implemented foundation contains:
 
 ```text
 app/                 Minimal App Router shell
@@ -83,6 +105,9 @@ lib/config/          Environment parsing and server/browser boundaries
 lib/core/            Framework-independent result and error primitives
 tests/unit/          Foundation unit tests
 .github/workflows/   Continuous-integration quality checks
+supabase/migrations/ Version-controlled schema, integrity rules, and RLS
+supabase/tests/      pgTAP schema and tenant-isolation tests
+supabase/seed.sql    Production-safe BuildPro reference data
 ```
 
 Architectural folders are added only when a phase has executable code for them. Business rules do not belong in React components, and future privileged operations must remain on the server.
