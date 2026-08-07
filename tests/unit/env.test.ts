@@ -4,6 +4,7 @@ import {
   EnvironmentValidationError,
   parsePublicEnvironment,
   parseServerEnvironment,
+  requireSupabasePublicConfig,
 } from "@/lib/config/env-schema";
 
 describe("environment validation", () => {
@@ -70,5 +71,20 @@ describe("environment validation", () => {
       expect(validationError.message).toContain("APP_BASE_URL");
       expect(validationError.message).not.toContain(secretValue);
     }
+  });
+
+  it("requires both public Supabase values when authentication is used", () => {
+    expect(() => requireSupabasePublicConfig({})).toThrow(
+      EnvironmentValidationError,
+    );
+    expect(
+      requireSupabasePublicConfig({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "public-placeholder",
+      }),
+    ).toEqual({
+      url: "https://example.supabase.co",
+      anonKey: "public-placeholder",
+    });
   });
 });

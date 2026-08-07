@@ -189,3 +189,13 @@ Superseded by:
 - 2026-08-07: Used request prefixes and generated references are immutable, and request references are globally unique so tenant-prefix reuse cannot create ambiguous customer-facing identifiers.
 - 2026-08-07: Authenticated roles cannot directly create attachment metadata, request status history, or general audit events. These records require controlled server operations or database triggers that derive trusted context.
 - 2026-08-07: Tenant roots and retained operational history use restrictive deletion behavior. Destructive retention work requires an explicit future workflow rather than cascading parent deletion.
+
+# Implemented Phase 2 authentication decisions
+
+- 2026-08-07: Employees authenticate with administrator-provisioned, verified email/password accounts. Global self-signup is disabled; the email provider remains enabled because disabling it also disables password login.
+- 2026-08-07: Protected server renders and actions validate the Auth user and resolve organization membership through the employee's RLS-bound Supabase client. The service-role key is not part of normal employee authentication.
+- 2026-08-07: Phase 2 permits exactly one active membership in one active organization. Zero, deactivated, unknown-role, inactive-organization, and multiple-membership states fail closed.
+- 2026-08-07: Navigation visibility is role-aware presentation only. Every role-limited destination independently enforces its permission on the server.
+- 2026-08-07: Session cookies use the supported Supabase SSR client and Next.js request proxy for refresh, while server-side access resolution remains the authorization boundary.
+- 2026-08-07: Logout attempts global revocation first and then local session cleanup; if both operations fail, the application reports a sanitized failure instead of claiming the employee was signed out.
+- 2026-08-07: Protected-route authorization is regression-tested over HTTP against a real local Supabase Auth session. Next.js streamed redirects may return an HTTP 200 shell, so tests also verify the embedded redirect destination and absence of protected content.

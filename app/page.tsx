@@ -1,14 +1,18 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
-    <main>
-      <section aria-labelledby="page-title">
-        <p className="eyebrow">Repository foundation</p>
+    <main className="auth-page">
+      <section aria-labelledby="page-title" className="auth-card">
+        <p className="eyebrow">Smart customer operations</p>
         <h1 id="page-title">SmartDesk AI</h1>
-        <p>
-          The engineering foundation is ready. Product capabilities will be
-          added incrementally according to the documented implementation
-          roadmap.
+        <p className="lead">
+          A secure workspace for service teams to receive and follow customer
+          requests.
         </p>
+        <Link className="button button-primary" href="/login">
+          Employee sign in
+        </Link>
       </section>
     </main>
   );

@@ -5,25 +5,33 @@ smartdesk-ai/
 │   └── workflows/
 │       └── ci.yml
 ├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   └── unauthorized/
+│   ├── dashboard/
+│   │   └── organization/
 │   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
+├── components/
+│   ├── auth/
+│   └── dashboard/
 ├── docs/
 │   ├── 00_INDEX.md ... 13_CODEX_TASK_PROMPTS.md
 │   └── plans/
 │       ├── README.md
 │       ├── phase-0-repository-foundation.md
-│       └── phase-1-supabase-foundation.md
+│       ├── phase-1-supabase-foundation.md
+│       └── phase-2-employee-authentication.md
 ├── lib/
+│   ├── auth/
 │   ├── config/
-│   │   ├── env-public.ts
-│   │   ├── env-schema.ts
-│   │   └── env-server.ts
-│   └── core/
-│       ├── errors.ts
-│       └── result.ts
+│   ├── core/
+│   └── supabase/
 ├── scripts/
 │   ├── seed-development.mjs
+│   ├── test-auth-routes.mjs
+│   ├── test-employee-auth.mjs
 │   └── test-reference-concurrency.mjs
 ├── supabase/
 │   ├── migrations/
@@ -34,21 +42,12 @@ smartdesk-ai/
 │   └── seed.sql
 ├── tests/
 │   └── unit/
-│       ├── env.test.ts
-│       └── result.test.ts
+│       └── auth/
 ├── .env.example
-├── .gitignore
-├── .nvmrc
-├── .prettierignore
-├── .prettierrc.json
 ├── AGENTS.md
-├── README.md
-├── eslint.config.mjs
-├── next-env.d.ts
-├── next.config.ts
-├── package-lock.json
 ├── package.json
+├── proxy.ts
 ├── tsconfig.json
 └── vitest.config.ts
 
-Phase 1 adds only the database foundation. Application feature folders remain deferred until their implementation phase.
+Phase 2 adds employee authentication and the dashboard shell only. Request management remains deferred to Phase 3.

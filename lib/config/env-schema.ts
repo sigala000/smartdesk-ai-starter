@@ -27,6 +27,11 @@ const serverEnvironmentSchema = publicEnvironmentSchema.extend({
 export type PublicEnvironment = z.output<typeof publicEnvironmentSchema>;
 export type ServerEnvironment = z.output<typeof serverEnvironmentSchema>;
 
+export type SupabasePublicConfig = Readonly<{
+  url: string;
+  anonKey: string;
+}>;
+
 export class EnvironmentValidationError extends Error {
   readonly variables: readonly string[];
 
@@ -61,4 +66,24 @@ export function parseServerEnvironment(
   input: EnvironmentInput,
 ): ServerEnvironment {
   return parseEnvironment(serverEnvironmentSchema, input);
+}
+
+export function requireSupabasePublicConfig(
+  environment: PublicEnvironment | ServerEnvironment,
+): SupabasePublicConfig {
+  const url = environment.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = environment.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const missing = [
+    url ? null : "NEXT_PUBLIC_SUPABASE_URL",
+    anonKey ? null : "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ].filter((variable): variable is string => variable !== null);
+
+  if (missing.length > 0 || !url || !anonKey) {
+    throw new EnvironmentValidationError(missing);
+  }
+
+  return {
+    url,
+    anonKey,
+  };
 }
