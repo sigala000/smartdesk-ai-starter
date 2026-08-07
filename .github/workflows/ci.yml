@@ -70,7 +70,7 @@ jobs:
       - name: Start local Supabase and apply migrations
         env:
           SUPABASE_TELEMETRY_DISABLED: "true"
-        run: npm run db:start
+        run: npm run db:start:ci
 
       - name: Reset and seed database
         env:
