@@ -5,6 +5,7 @@ import {
   parsePublicEnvironment,
   parseServerEnvironment,
   requireSupabasePublicConfig,
+  requireOpenAIConfig,
 } from "@/lib/config/env-schema";
 
 describe("environment validation", () => {
@@ -86,5 +87,24 @@ describe("environment validation", () => {
       url: "https://example.supabase.co",
       anonKey: "public-placeholder",
     });
+  });
+
+  it("requires server-only OpenAI credentials only when AI is enabled", () => {
+    expect(
+      requireOpenAIConfig(parseServerEnvironment({ OPENAI_ENABLED: "false" })),
+    ).toBeNull();
+    expect(() =>
+      requireOpenAIConfig(parseServerEnvironment({ OPENAI_ENABLED: "true" })),
+    ).toThrow(EnvironmentValidationError);
+    expect(
+      requireOpenAIConfig(
+        parseServerEnvironment({
+          OPENAI_ENABLED: "true",
+          OPENAI_API_KEY: "server-secret",
+          OPENAI_MODEL: "gpt-5.6-sol",
+          OPENAI_MAX_TOOL_CALLS: "3",
+        }),
+      ),
+    ).toMatchObject({ model: "gpt-5.6-sol", maxToolCalls: 3 });
   });
 });

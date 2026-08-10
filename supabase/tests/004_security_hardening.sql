@@ -4,7 +4,7 @@ select plan(15);
 
 select ok(not has_table_privilege('anon','public.customers','SELECT'),'anon cannot list customers');
 select ok(not has_table_privilege('anon','public.requests','SELECT'),'anon cannot list requests');
-select is((select count(*) from pg_class where oid in (select format('public.%I',tablename)::regclass from pg_tables where schemaname='public') and relrowsecurity and relforcerowsecurity),18::bigint,'all application tables force RLS');
+select is((select count(*) from pg_class where oid in (select format('public.%I',tablename)::regclass from pg_tables where schemaname='public') and relrowsecurity and relforcerowsecurity),21::bigint,'all application tables force RLS');
 select ok(not has_function_privilege('authenticated','private.next_request_reference(uuid,timestamptz)','EXECUTE'),'reference allocator is not client callable');
 
 insert into public.organizations(id,name,slug,reference_prefix) values

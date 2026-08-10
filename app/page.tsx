@@ -10,9 +10,17 @@ export default function HomePage() {
           A secure workspace for service teams to receive and follow customer
           requests.
         </p>
-        <Link className="button button-primary" href="/login">
-          Employee sign in
-        </Link>
+        <div className="chat-options">
+          <Link
+            className="button button-primary"
+            href="/chat/buildpro-cameroon"
+          >
+            Start BuildPro chat
+          </Link>
+          <Link className="button" href="/login">
+            Employee sign in
+          </Link>
+        </div>
       </section>
     </main>
   );

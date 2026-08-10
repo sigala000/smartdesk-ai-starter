@@ -2,7 +2,7 @@
 
 SmartDesk AI is a planned multi-tenant customer request and follow-up platform for service companies. It will combine guided request capture, human escalation, and an employee workflow. The first validation tenant is BuildPro Cameroon, a fictional construction company.
 
-The repository currently implements **Phase 2**: the executable Next.js and Supabase foundation plus secure employee email/password authentication, server-side active-membership and role resolution, protected dashboard routes, and a role-aware dashboard shell. Request-management pages, customer chat, storage workflows, and OpenAI are not implemented yet.
+The repository currently implements **Phase 4**: the executable Next.js and Supabase foundation, secure employee authentication, tenant-scoped request management, and a deterministic public BuildPro chat. Customers can complete a structured quotation request without OpenAI, review/edit server-stored fields, explicitly confirm, receive a backend-generated reference, and create exactly one dashboard request. Storage uploads and OpenAI are not implemented yet.
 
 ## Prerequisites
 
@@ -31,6 +31,8 @@ cp .env.example .env.local
 ```
 
 Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the Supabase environment used by the application. These values are browser-safe; never place the service-role key in a `NEXT_PUBLIC_*` variable. Never commit `.env.local` or place real credentials in `.env.example`.
+
+The public chat additionally requires `SUPABASE_SERVICE_ROLE_KEY` and a strong random `PUBLIC_RATE_LIMIT_SECRET` on the server. Neither value is browser-safe. With local Supabase configured, open `http://localhost:3000/chat/buildpro-cameroon`.
 
 Start the development server:
 
@@ -73,7 +75,7 @@ ALLOW_LOCAL_SAMPLE_DATA=true npm run db:seed:development
 
 The guard refuses to run unless the local Supabase database is active on a loopback address. Never apply this development fixture to a hosted project. Database types are generated from the local schema into `lib/supabase/database.types.ts`; CI fails if regeneration creates a diff.
 
-`npm run db:test` also provisions temporary confirmed local Auth users, verifies password login and RLS tenant scope, deactivates a membership while its Auth session remains valid, verifies access is removed, tests logout, and exercises protected Next.js routes over HTTP. The route checks cover unauthenticated, malformed-session, deactivated-member, and direct role-denial cases without rendering protected content. Test fixtures are deleted after each run. The temporary service-role key is read from the local CLI only and is never used by browser or application authentication code.
+`npm run db:test` also provisions temporary confirmed local Auth users, verifies password login and RLS tenant scope, tests protected employee routes, and exercises request and public-conversation APIs over HTTP. Phase 4 checks cover opaque conversation access, deterministic guided collection, duplicate messages, server summary/nonce confirmation, idempotent request creation, backend references, and employee-dashboard visibility. Test fixtures are deleted after each run. The temporary service-role key is read from the local CLI and remains server-side.
 
 ## Employee authentication setup
 
@@ -118,7 +120,8 @@ The currently documented variables are:
 | ------------------------------- | ------------ | ------------------------------ |
 | `NEXT_PUBLIC_SUPABASE_URL`      | Browser-safe | Yes, for authentication routes |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser-safe | Yes, for authentication routes |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server only  | No; not used by employee auth  |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server only  | Yes, for public chat routes    |
+| `PUBLIC_RATE_LIMIT_SECRET`      | Server only  | Yes, for public chat routes    |
 | `OPENAI_API_KEY`                | Server only  | No                             |
 | `OPENAI_MODEL`                  | Server only  | No                             |
 | `APP_BASE_URL`                  | Server only  | No                             |
@@ -135,6 +138,9 @@ components/          Authentication and dashboard shell components
 lib/auth/            Membership resolution, roles, permissions, and guards
 lib/config/          Environment parsing and server/browser boundaries
 lib/core/            Framework-independent result and error primitives
+lib/domain/          Request values, workflow transitions, and cursor rules
+lib/repositories/    Organization-scoped Supabase request data access
+lib/services/        Request application services and typed business outcomes
 lib/supabase/        Cookie-aware browser/server clients and generated types
 tests/unit/          Foundation and authorization unit tests
 .github/workflows/   Continuous-integration quality checks
@@ -169,3 +175,5 @@ Do not begin a later phase until its documentation and execution plan have been 
 - `docs/plans/phase-0-repository-foundation.md` records the Phase 0 design, progress, decisions, and verification evidence.
 - `docs/plans/phase-1-supabase-foundation.md` records the Phase 1 database foundation.
 - `docs/plans/phase-2-employee-authentication.md` records the Phase 2 authentication implementation.
+- `docs/plans/phase-3-request-management.md` records the Phase 3 employee request-management implementation.
+- `docs/plans/phase-4-public-chat-and-request-draft.md` records the deterministic Phase 4 customer workflow.

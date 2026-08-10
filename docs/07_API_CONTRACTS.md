@@ -74,6 +74,18 @@ Request:
 }
 ```
 
+The implemented Phase 5 natural-language variant is:
+
+```json
+{
+  "clientMessageId": "uuid",
+  "kind": "message",
+  "message": "I want to renovate my kitchen."
+}
+```
+
+The server resolves organization and conversation scope from the opaque conversation cookie. Model output and tool arguments cannot supply that scope. When AI is disabled or unavailable, the message is retained and the deterministic Phase 4 prompt is returned.
+
 Response `200`:
 
 ```json
@@ -211,7 +223,11 @@ Request:
 
 ```json
 {
-  "conversationId": "uuid",
+  "target": {
+    "kind": "conversation",
+    "conversationId": "uuid"
+  },
+  "clientUploadId": "uuid",
   "filename": "kitchen.jpg",
   "mimeType": "image/jpeg",
   "sizeBytes": 1400000
@@ -222,12 +238,15 @@ Response:
 
 ```json
 {
-  "attachmentId": "uuid",
-  "upload": {
-    "method": "signed-upload",
-    "token": "opaque_value",
-    "storagePath": "tenant/..."
-  }
+  "attachment": {
+    "id": "uuid",
+    "filename": "kitchen.jpg",
+    "mimeType": "image/jpeg",
+    "sizeBytes": 1400000
+  },
+  "path": "server-generated randomized path",
+  "token": "opaque signed-upload token",
+  "expiresAt": "ISO-8601"
 }
 ```
 
@@ -237,6 +256,9 @@ The exact Supabase upload mechanism may differ. Do not return service credential
 
 Confirms upload and performs post-upload validation.
 
+The completion body cannot replace tenant, target, filename, MIME, size, or
+path metadata. Those values are reloaded from server-owned pending state.
+
 Response:
 
 ```json
@@ -244,10 +266,21 @@ Response:
   "attachment": {
     "id": "uuid",
     "filename": "kitchen.jpg",
-    "status": "active"
+    "mimeType": "image/jpeg",
+    "sizeBytes": 1400000
   }
 }
 ```
+
+### POST /api/attachments/{attachmentId}/download
+
+Reauthorizes the current customer conversation or employee request access and
+returns an exact-object signed URL valid for 60 seconds. No permanent public URL
+is returned and the response is not cacheable.
+
+### DELETE /api/attachments/{attachmentId}
+
+Invalidates an authorized attachment before retry-safe object deletion.
 
 ## Employee endpoints
 

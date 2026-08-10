@@ -1,0 +1,48 @@
+import {
+  apiAccessError,
+  apiAttachmentError,
+  apiSuccess,
+  apiValidation,
+} from "@/lib/http/api-response";
+import { publicConversationRequestContext } from "@/lib/http/public-conversation-request";
+import { attachmentIdSchema } from "@/lib/schemas/attachment-api";
+import {
+  createEmployeeAttachmentRuntime,
+  createPublicAttachmentRuntime,
+} from "@/lib/services/attachment-runtime";
+
+type Context = { params: Promise<{ attachmentId: string }> };
+
+export async function DELETE(request: Request, context: Context) {
+  const id = attachmentIdSchema.safeParse((await context.params).attachmentId);
+  if (!id.success) return apiValidation(id.error);
+  const conversationId = new URL(request.url).searchParams.get(
+    "conversationId",
+  );
+  if (conversationId) {
+    const access = await publicConversationRequestContext(
+      request,
+      conversationId,
+    );
+    const result = await createPublicAttachmentRuntime().invalidate(
+      { kind: "customer", conversationId, ...access },
+      id.data,
+    );
+    return result.ok
+      ? apiSuccess({ deleted: true })
+      : apiAttachmentError(result.error);
+  }
+  const runtime = await createEmployeeAttachmentRuntime();
+  if (!runtime.access.ok)
+    return apiAccessError(
+      runtime.access,
+      "You are not authorized to remove this attachment.",
+    );
+  const result = await runtime.service.invalidate(
+    { kind: "employee", context: runtime.access.context },
+    id.data,
+  );
+  return result.ok
+    ? apiSuccess({ deleted: true })
+    : apiAttachmentError(result.error);
+}

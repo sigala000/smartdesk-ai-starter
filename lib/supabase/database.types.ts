@@ -14,9 +14,11 @@ export type Database = {
           assigned_at: string
           assigned_by_member_id: string | null
           created_at: string
+          department_id: string | null
           id: string
-          member_id: string
+          member_id: string | null
           organization_id: string
+          reason: string | null
           request_id: string
           unassigned_at: string | null
         }
@@ -24,9 +26,11 @@ export type Database = {
           assigned_at?: string
           assigned_by_member_id?: string | null
           created_at?: string
+          department_id?: string | null
           id?: string
-          member_id: string
+          member_id?: string | null
           organization_id: string
+          reason?: string | null
           request_id: string
           unassigned_at?: string | null
         }
@@ -34,13 +38,22 @@ export type Database = {
           assigned_at?: string
           assigned_by_member_id?: string | null
           created_at?: string
+          department_id?: string | null
           id?: string
-          member_id?: string
+          member_id?: string | null
           organization_id?: string
+          reason?: string | null
           request_id?: string
           unassigned_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "assignments_department_fk"
+            columns: ["organization_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "assignments_organization_id_assigned_by_member_id_fkey"
             columns: ["organization_id", "assigned_by_member_id"]
@@ -73,45 +86,85 @@ export type Database = {
       }
       attachments: {
         Row: {
+          client_upload_id: string
+          completed_at: string | null
+          content_sha256: string | null
+          conversation_id: string | null
           created_at: string
+          deleted_at: string | null
           id: string
+          invalidated_at: string | null
           message_id: string | null
           mime_type: string
           organization_id: string
           original_filename: string
+          rejection_code: string | null
           request_id: string | null
+          scan_status: string
           size_bytes: number
           storage_bucket: string
           storage_path: string
+          upload_expires_at: string | null
+          upload_status: string
           uploaded_by_member_id: string | null
+          uploaded_by_type: string
         }
         Insert: {
+          client_upload_id?: string
+          completed_at?: string | null
+          content_sha256?: string | null
+          conversation_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          invalidated_at?: string | null
           message_id?: string | null
           mime_type: string
           organization_id: string
           original_filename: string
+          rejection_code?: string | null
           request_id?: string | null
+          scan_status?: string
           size_bytes: number
           storage_bucket: string
           storage_path: string
+          upload_expires_at?: string | null
+          upload_status?: string
           uploaded_by_member_id?: string | null
+          uploaded_by_type?: string
         }
         Update: {
+          client_upload_id?: string
+          completed_at?: string | null
+          content_sha256?: string | null
+          conversation_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          invalidated_at?: string | null
           message_id?: string | null
           mime_type?: string
           organization_id?: string
           original_filename?: string
+          rejection_code?: string | null
           request_id?: string | null
+          scan_status?: string
           size_bytes?: number
           storage_bucket?: string
           storage_path?: string
+          upload_expires_at?: string | null
+          upload_status?: string
           uploaded_by_member_id?: string | null
+          uploaded_by_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "attachments_conversation_fk"
+            columns: ["organization_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "attachments_organization_id_fkey"
             columns: ["organization_id"]
@@ -190,13 +243,115 @@ export type Database = {
           },
         ]
       }
+      conversation_drafts: {
+        Row: {
+          budget_currency: string
+          budget_max: number | null
+          budget_min: number | null
+          cancelled_at: string | null
+          confirmation_idempotency_key: string | null
+          confirmation_nonce_digest: string | null
+          confirmation_nonce_expires_at: string | null
+          confirmed_at: string | null
+          conversation_id: string
+          created_at: string
+          customer_name: string | null
+          description: string | null
+          edit_field: string | null
+          email: string | null
+          intent: string | null
+          location: string | null
+          organization_id: string
+          phone: string | null
+          phone_confirmed_at: string | null
+          preferred_start_date: string | null
+          request_type: string | null
+          service_id: string | null
+          stage: string
+          summary_version: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          budget_currency?: string
+          budget_max?: number | null
+          budget_min?: number | null
+          cancelled_at?: string | null
+          confirmation_idempotency_key?: string | null
+          confirmation_nonce_digest?: string | null
+          confirmation_nonce_expires_at?: string | null
+          confirmed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          customer_name?: string | null
+          description?: string | null
+          edit_field?: string | null
+          email?: string | null
+          intent?: string | null
+          location?: string | null
+          organization_id: string
+          phone?: string | null
+          phone_confirmed_at?: string | null
+          preferred_start_date?: string | null
+          request_type?: string | null
+          service_id?: string | null
+          stage?: string
+          summary_version?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          budget_currency?: string
+          budget_max?: number | null
+          budget_min?: number | null
+          cancelled_at?: string | null
+          confirmation_idempotency_key?: string | null
+          confirmation_nonce_digest?: string | null
+          confirmation_nonce_expires_at?: string | null
+          confirmed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          customer_name?: string | null
+          description?: string | null
+          edit_field?: string | null
+          email?: string | null
+          intent?: string | null
+          location?: string | null
+          organization_id?: string
+          phone?: string | null
+          phone_confirmed_at?: string | null
+          preferred_start_date?: string | null
+          request_type?: string | null
+          service_id?: string | null
+          stage?: string
+          summary_version?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_drafts_organization_id_conversation_id_fkey"
+            columns: ["organization_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "conversation_drafts_organization_id_service_id_fkey"
+            columns: ["organization_id", "service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           assigned_member_id: string | null
           channel: string
           closed_at: string | null
           created_at: string
-          customer_id: string
+          customer_id: string | null
           id: string
           organization_id: string
           request_id: string | null
@@ -209,7 +364,7 @@ export type Database = {
           channel?: string
           closed_at?: string | null
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           id?: string
           organization_id: string
           request_id?: string | null
@@ -222,7 +377,7 @@ export type Database = {
           channel?: string
           closed_at?: string | null
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           id?: string
           organization_id?: string
           request_id?: string | null
@@ -587,32 +742,38 @@ export type Database = {
       }
       messages: {
         Row: {
+          client_message_id: string | null
           content: string
           conversation_id: string
           created_at: string
           id: string
           metadata: Json
           organization_id: string
+          reply_to_message_id: string | null
           sender_member_id: string | null
           sender_type: string
         }
         Insert: {
+          client_message_id?: string | null
           content: string
           conversation_id: string
           created_at?: string
           id?: string
           metadata?: Json
           organization_id: string
+          reply_to_message_id?: string | null
           sender_member_id?: string | null
           sender_type: string
         }
         Update: {
+          client_message_id?: string | null
           content?: string
           conversation_id?: string
           created_at?: string
           id?: string
           metadata?: Json
           organization_id?: string
+          reply_to_message_id?: string | null
           sender_member_id?: string | null
           sender_type?: string
         }
@@ -636,6 +797,13 @@ export type Database = {
             columns: ["organization_id", "sender_member_id"]
             isOneToOne: false
             referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_fk"
+            columns: ["organization_id", "reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["organization_id", "id"]
           },
         ]
@@ -785,6 +953,82 @@ export type Database = {
         }
         Relationships: []
       }
+      public_conversation_access: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          expires_at: string
+          organization_id: string
+          read_disabled_at: string | null
+          revoked_at: string | null
+          token_digest: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          expires_at: string
+          organization_id: string
+          read_disabled_at?: string | null
+          revoked_at?: string | null
+          token_digest: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          expires_at?: string
+          organization_id?: string
+          read_disabled_at?: string | null
+          revoked_at?: string | null
+          token_digest?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_conversation_access_organization_id_conversation_id_fkey"
+            columns: ["organization_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      public_rate_limits: {
+        Row: {
+          action: string
+          expires_at: string
+          id: number
+          organization_id: string | null
+          request_count: number
+          subject_digest: string
+          window_started_at: string
+        }
+        Insert: {
+          action: string
+          expires_at: string
+          id?: never
+          organization_id?: string | null
+          request_count?: number
+          subject_digest: string
+          window_started_at: string
+        }
+        Update: {
+          action?: string
+          expires_at?: string
+          id?: never
+          organization_id?: string | null
+          request_count?: number
+          subject_digest?: string
+          window_started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_rate_limits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       request_reference_counters: {
         Row: {
           last_value: number
@@ -817,32 +1061,38 @@ export type Database = {
       request_status_history: {
         Row: {
           changed_by_member_id: string | null
+          changed_by_type: string
           created_at: string
           from_status: string | null
           id: string
           organization_id: string
           reason: string | null
           request_id: string
+          source: string
           to_status: string
         }
         Insert: {
           changed_by_member_id?: string | null
+          changed_by_type?: string
           created_at?: string
           from_status?: string | null
           id?: string
           organization_id: string
           reason?: string | null
           request_id: string
+          source?: string
           to_status: string
         }
         Update: {
           changed_by_member_id?: string | null
+          changed_by_type?: string
           created_at?: string
           from_status?: string | null
           id?: string
           organization_id?: string
           reason?: string | null
           request_id?: string
+          source?: string
           to_status?: string
         }
         Relationships: [
@@ -872,6 +1122,9 @@ export type Database = {
       requests: {
         Row: {
           assigned_member_id: string | null
+          budget_currency: string | null
+          budget_max: number | null
+          budget_min: number | null
           confirmed_at: string | null
           conversation_id: string | null
           created_at: string
@@ -882,6 +1135,7 @@ export type Database = {
           idempotency_key: string
           location: string | null
           organization_id: string
+          preferred_start_date: string | null
           priority: string
           reference_number: string
           request_type: string
@@ -892,6 +1146,9 @@ export type Database = {
         }
         Insert: {
           assigned_member_id?: string | null
+          budget_currency?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
           confirmed_at?: string | null
           conversation_id?: string | null
           created_at?: string
@@ -902,6 +1159,7 @@ export type Database = {
           idempotency_key: string
           location?: string | null
           organization_id: string
+          preferred_start_date?: string | null
           priority?: string
           reference_number: string
           request_type: string
@@ -912,6 +1170,9 @@ export type Database = {
         }
         Update: {
           assigned_member_id?: string | null
+          budget_currency?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
           confirmed_at?: string | null
           conversation_id?: string | null
           created_at?: string
@@ -922,6 +1183,7 @@ export type Database = {
           idempotency_key?: string
           location?: string | null
           organization_id?: string
+          preferred_start_date?: string | null
           priority?: string
           reference_number?: string
           request_type?: string
@@ -1028,7 +1290,197 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_internal_note: {
+        Args: { p_content: string; p_request_id: string }
+        Returns: {
+          author_member_id: string
+          content: string
+          created_at: string
+          id: string
+          organization_id: string
+          request_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "internal_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      assign_request: {
+        Args: {
+          p_department_id: string
+          p_expected_updated_at: string
+          p_member_id: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: {
+          assigned_member_id: string | null
+          budget_currency: string | null
+          budget_max: number | null
+          budget_min: number | null
+          confirmed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          customer_id: string
+          department_id: string | null
+          description: string | null
+          id: string
+          idempotency_key: string
+          location: string | null
+          organization_id: string
+          preferred_start_date: string | null
+          priority: string
+          reference_number: string
+          request_type: string
+          service_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      confirm_public_request: {
+        Args: {
+          p_conversation_id: string
+          p_idempotency_key: string
+          p_nonce_digest: string
+          p_token_digest: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          reference_number: string
+          replayed: boolean
+          status: string
+        }[]
+      }
+      consume_public_rate_limit: {
+        Args: {
+          p_action: string
+          p_limit: number
+          p_organization_id: string
+          p_subject_digest: string
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
+      create_public_conversation: {
+        Args: { p_organization_slug: string; p_token_digest: string }
+        Returns: {
+          conversation_id: string
+          created_at: string
+          organization_id: string
+          organization_name: string
+        }[]
+      }
+      process_public_message: {
+        Args: {
+          p_budget_max: number
+          p_budget_min: number
+          p_cancelled_at: string
+          p_client_message_id: string
+          p_conversation_id: string
+          p_customer_content: string
+          p_customer_name: string
+          p_description: string
+          p_email: string
+          p_expected_version: number
+          p_intent: string
+          p_location: string
+          p_phone: string
+          p_phone_confirmed_at: string
+          p_preferred_start_date: string
+          p_reply: string
+          p_request_type: string
+          p_service_id: string
+          p_stage: string
+          p_token_digest: string
+        }
+        Returns: boolean
+      }
+      request_more_information: {
+        Args: {
+          p_expected_updated_at: string
+          p_question: string
+          p_request_id: string
+        }
+        Returns: {
+          assigned_member_id: string | null
+          budget_currency: string | null
+          budget_max: number | null
+          budget_min: number | null
+          confirmed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          customer_id: string
+          department_id: string | null
+          description: string | null
+          id: string
+          idempotency_key: string
+          location: string | null
+          organization_id: string
+          preferred_start_date: string | null
+          priority: string
+          reference_number: string
+          request_type: string
+          service_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      transition_request_status: {
+        Args: {
+          p_expected_updated_at: string
+          p_new_status: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: {
+          assigned_member_id: string | null
+          budget_currency: string | null
+          budget_max: number | null
+          budget_min: number | null
+          confirmed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          customer_id: string
+          department_id: string | null
+          description: string | null
+          id: string
+          idempotency_key: string
+          location: string | null
+          organization_id: string
+          preferred_start_date: string | null
+          priority: string
+          reference_number: string
+          request_type: string
+          service_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never

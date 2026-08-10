@@ -206,6 +206,15 @@ Responsibilities:
 - Persist messages and tool events
 - Enforce escalation and grounding rules
 
+Implemented Phase 5 uses a server-only Responses API adapter, versioned instructions, bounded customer-safe context, six allowlisted tool schemas, a validating service dispatcher, a maximum tool loop, and deterministic fallback. Structured conversation drafts and the Phase 4 confirmation transaction remain authoritative; provider state is never the business system of record.
+
+Implemented Phase 6 keeps attachment metadata and Storage access behind an
+attachment service/repository boundary. Browsers receive only one-object signed
+upload tokens and, after a new authorization check, 60-second signed downloads.
+The `private-attachments` bucket is private; paths contain trusted tenant and
+target identifiers plus a random UUID, never an original filename. Stored bytes
+are type/size validated before activation and are not placed in agent context.
+
 ### Integration layer
 
 Directories:

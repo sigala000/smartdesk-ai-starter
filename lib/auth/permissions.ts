@@ -1,15 +1,73 @@
 import type { EmployeeRole } from "@/lib/auth/roles";
 
-export const permissions = ["dashboard:view", "organization:view"] as const;
+export const permissions = [
+  "dashboard:view",
+  "organization:view",
+  "requests:list",
+  "requests:view",
+  "requests:assign",
+  "requests:status:update",
+  "requests:notes:view",
+  "requests:notes:create",
+  "requests:request_information",
+  "attachments:view",
+  "attachments:create",
+  "attachments:invalidate",
+] as const;
 export type Permission = (typeof permissions)[number];
 
 const rolePermissions: Readonly<Record<EmployeeRole, readonly Permission[]>> = {
   admin: permissions,
   manager: permissions,
-  commercial_officer: ["dashboard:view"],
-  technical_officer: ["dashboard:view"],
-  project_manager: ["dashboard:view"],
-  support_officer: ["dashboard:view"],
+  commercial_officer: [
+    "dashboard:view",
+    "requests:list",
+    "requests:view",
+    "requests:assign",
+    "requests:status:update",
+    "requests:notes:view",
+    "requests:notes:create",
+    "requests:request_information",
+    "attachments:view",
+    "attachments:create",
+    "attachments:invalidate",
+  ],
+  technical_officer: [
+    "dashboard:view",
+    "requests:list",
+    "requests:view",
+    "requests:status:update",
+    "requests:notes:view",
+    "requests:notes:create",
+    "requests:request_information",
+    "attachments:view",
+    "attachments:create",
+    "attachments:invalidate",
+  ],
+  project_manager: [
+    "dashboard:view",
+    "requests:list",
+    "requests:view",
+    "requests:status:update",
+    "requests:notes:view",
+    "requests:notes:create",
+    "requests:request_information",
+    "attachments:view",
+    "attachments:create",
+    "attachments:invalidate",
+  ],
+  support_officer: [
+    "dashboard:view",
+    "requests:list",
+    "requests:view",
+    "requests:status:update",
+    "requests:notes:view",
+    "requests:notes:create",
+    "requests:request_information",
+    "attachments:view",
+    "attachments:create",
+    "attachments:invalidate",
+  ],
   viewer: ["dashboard:view"],
 };
 
@@ -25,6 +83,11 @@ export type NavigationItem = Readonly<{
 
 const navigationItems: readonly NavigationItem[] = [
   { href: "/dashboard", label: "Overview", permission: "dashboard:view" },
+  {
+    href: "/dashboard/requests",
+    label: "Requests",
+    permission: "requests:list",
+  },
   {
     href: "/dashboard/organization",
     label: "Organization",

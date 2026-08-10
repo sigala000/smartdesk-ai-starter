@@ -149,6 +149,14 @@ Controls:
 
 Do not automatically send every uploaded file to the model.
 
+Phase 6 applies a 10 MiB pilot limit and accepts exactly `image/jpeg`,
+`image/png`, and `application/pdf`. Completion compares the stored size and MIME
+metadata and inspects JPEG/PNG/PDF magic bytes before activation. Pilot files are
+recorded as `not_scanned`; this must not be represented to users as antivirus
+scanning. Anonymous or authenticated clients receive no broad Storage object
+policy, and each download requires server authorization before a 60-second URL
+is signed.
+
 ## Data minimization
 
 Collect only information needed for service delivery.

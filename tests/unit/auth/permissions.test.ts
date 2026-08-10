@@ -21,4 +21,15 @@ describe("employee shell permissions", () => {
       "/dashboard",
     ]);
   });
+
+  it("denies viewer request access and exposes request navigation to operational roles", () => {
+    expect(can("viewer", "requests:view")).toBe(false);
+    expect(can("commercial_officer", "requests:view")).toBe(true);
+    expect(
+      navigationForRole("technical_officer").map((item) => item.href),
+    ).toContain("/dashboard/requests");
+    expect(navigationForRole("viewer").map((item) => item.href)).not.toContain(
+      "/dashboard/requests",
+    );
+  });
 });

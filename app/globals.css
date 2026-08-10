@@ -12,6 +12,190 @@
   color: #13251c;
 }
 
+.public-chat-page {
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background: linear-gradient(145deg, #edf7f3, #f8fafc 55%, #fff4df);
+}
+
+.chat-card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: clamp(1rem, 4vw, 2rem);
+  border: 1px solid #d8e3df;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 20px 60px rgb(15 55 45 / 10%);
+}
+
+.chat-transcript {
+  display: grid;
+  gap: 0.75rem;
+  max-height: 42vh;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  overflow-y: auto;
+  border-radius: 1rem;
+  background: #f4f7f6;
+}
+
+.chat-message {
+  max-width: 85%;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.chat-message.customer {
+  justify-self: end;
+  background: #174f42;
+  color: #fff;
+}
+
+.chat-message p {
+  margin: 0.25rem 0 0;
+}
+.chat-options,
+.chat-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+.chat-card form {
+  display: grid;
+  gap: 0.75rem;
+}
+.chat-card input {
+  padding: 0.8rem;
+  border: 1px solid #82968f;
+  border-radius: 0.5rem;
+  font: inherit;
+}
+.chat-card button {
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: #174f42;
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.chat-card button.secondary {
+  background: #e7ecea;
+  color: #18352e;
+}
+.chat-card button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.chat-card button:focus-visible,
+.chat-card input:focus-visible {
+  outline: 3px solid #e7a62b;
+  outline-offset: 2px;
+}
+.draft-summary dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.draft-summary dl div {
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  background: #f4f7f6;
+}
+.draft-summary dt {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.draft-summary dd {
+  margin: 0.25rem 0 0;
+}
+.success-panel {
+  padding: 1rem;
+  border: 1px solid #63a68f;
+  border-radius: 0.75rem;
+  background: #eaf8f2;
+}
+
+.attachment-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #cfddd5;
+  border-radius: 0.75rem;
+  background: #f8fbfa;
+}
+.attachment-panel h3,
+.attachment-panel p {
+  margin: 0;
+}
+.attachment-help {
+  color: #52635a;
+  font-size: 0.9rem;
+}
+.attachment-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+.attachment-picker span {
+  display: inline-block;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: #174f42;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.attachment-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.attachment-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  background: #fff;
+}
+.attachment-list small {
+  display: block;
+  color: #52635a;
+}
+.attachment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+@media (max-width: 600px) {
+  .public-chat-page {
+    padding: 0;
+  }
+  .chat-card {
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+  }
+  .draft-summary dl {
+    grid-template-columns: 1fr;
+  }
+  .chat-message {
+    max-width: 95%;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -278,6 +462,180 @@ h1 {
   text-transform: capitalize;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.request-filters,
+.request-actions form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #d8e3dc;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.request-filters {
+  grid-template-columns: repeat(4, minmax(10rem, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.request-filters label,
+.request-actions label {
+  display: grid;
+  gap: 0.4rem;
+  color: #365246;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.request-filters input,
+.request-filters select,
+.request-actions input,
+.request-actions select,
+.request-actions textarea {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #b9c9bf;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #17251e;
+  font: inherit;
+}
+
+.request-actions textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: end;
+  gap: 0.8rem;
+}
+
+.filter-actions a,
+.pagination a,
+.back-link {
+  color: #176c43;
+  font-weight: 700;
+}
+
+.request-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #d8e3dc;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.request-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.request-table th,
+.request-table td {
+  padding: 0.9rem;
+  border-bottom: 1px solid #e7eee9;
+  text-align: left;
+  vertical-align: top;
+}
+
+.request-table th {
+  color: #52655b;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.request-table td small,
+.timeline span {
+  display: block;
+  margin-top: 0.25rem;
+  color: #607068;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: #e5f3eb;
+  color: #145d3b;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.pagination,
+.empty-state,
+.error-panel,
+.loading-panel {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border-radius: 0.8rem;
+  background: #f4f8f5;
+}
+
+.request-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.detail-card {
+  padding: 1.25rem;
+  border: 1px solid #d8e3dc;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.detail-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.8rem;
+}
+
+.detail-card dt {
+  color: #607068;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-card dd {
+  margin: 0.2rem 0 0;
+}
+
+.employee-only {
+  border-left: 4px solid #b56a1f;
+}
+
+.timeline {
+  display: grid;
+  gap: 0.9rem;
+  padding-left: 1.2rem;
+}
+
+.request-actions {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.request-actions form {
+  max-width: 48rem;
+}
+
+.form-message {
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  background: #e5f3eb;
+}
+
 .loading-state {
   display: flex;
   min-height: 100vh;
@@ -320,6 +678,12 @@ h1 {
 
   .account-summary {
     margin-top: 0;
+  }
+
+  .request-filters,
+  .request-detail-grid,
+  .detail-card dl {
+    grid-template-columns: 1fr;
   }
 }
 

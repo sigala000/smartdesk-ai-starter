@@ -10,7 +10,11 @@ insert into public.requests(id,organization_id,customer_id,service_id,reference_
 
 select matches((select reference_number from public.requests where id='21000000-0000-4000-8000-000000000001'),'^BP-[0-9]{4}-[0-9]{6}$','reference format is stable');
 select isnt((select reference_number from public.requests where id='21000000-0000-4000-8000-000000000001'),(select reference_number from public.requests where id='21000000-0000-4000-8000-000000000002'),'sequential allocation is unique');
-select is((select last_value from public.request_reference_counters where organization_id='10000000-0000-4000-8000-000000000001' order by reference_year desc limit 1),2::bigint,'counter increments atomically');
+select is(
+  (select last_value from public.request_reference_counters where organization_id='10000000-0000-4000-8000-000000000001' order by reference_year desc limit 1),
+  (select right(reference_number, 6)::bigint from public.requests where id='21000000-0000-4000-8000-000000000002'),
+  'counter tracks the latest atomic allocation'
+);
 select lives_ok($$set constraints conversations_request_pair, requests_conversation_pair immediate$$,'deferred reciprocal checks execute for unlinked requests');
 select throws_ok($$insert into public.requests(organization_id,customer_id,service_id,reference_number,request_type,title,description,location,idempotency_key,confirmed_at) values('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','12000000-0000-4000-8000-000000000001','MANUAL-1','quotation','Invalid','Invalid','Douala','21000000-0000-4000-8000-000000000013',now())$$,'22023','request references are server generated','manual references rejected');
 select throws_ok($$insert into public.requests(organization_id,customer_id,service_id,reference_number,request_type,title,description,idempotency_key,confirmed_at) values('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','12000000-0000-4000-8000-000000000001',null,'invalid','Invalid','Invalid','21000000-0000-4000-8000-000000000014',now())$$,'23514',null,'request type constrained');

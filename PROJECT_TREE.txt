@@ -9,29 +9,50 @@ smartdesk-ai/
 │   │   ├── login/
 │   │   └── unauthorized/
 │   ├── dashboard/
-│   │   └── organization/
+│   │   ├── organization/
+│   │   └── requests/
+│   ├── chat/
+│   │   └── [organizationSlug]/
+│   ├── api/dashboard/requests/
+│   ├── api/conversations/
 │   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components/
 │   ├── auth/
-│   └── dashboard/
+│   ├── chat/
+│   ├── dashboard/
+│   └── requests/
 ├── docs/
 │   ├── 00_INDEX.md ... 13_CODEX_TASK_PROMPTS.md
 │   └── plans/
 │       ├── README.md
 │       ├── phase-0-repository-foundation.md
 │       ├── phase-1-supabase-foundation.md
-│       └── phase-2-employee-authentication.md
+│       ├── phase-2-employee-authentication.md
+│       ├── phase-3-request-management.md
+│       ├── phase-4-public-chat-and-request-draft.md
+│       ├── phase-5-openai-agent-orchestration.md
+│       └── phase-5b-meta-whatsapp-test-integration.md
 ├── lib/
+│   ├── agent/
 │   ├── auth/
 │   ├── config/
 │   ├── core/
+│   ├── domain/
+│   ├── dto/
+│   ├── http/
+│   ├── openai/
+│   ├── repositories/
+│   ├── schemas/
+│   ├── services/
 │   └── supabase/
 ├── scripts/
 │   ├── seed-development.mjs
 │   ├── test-auth-routes.mjs
 │   ├── test-employee-auth.mjs
+│   ├── test-public-conversation-routes.mjs
+│   ├── test-request-routes.mjs
 │   └── test-reference-concurrency.mjs
 ├── supabase/
 │   ├── migrations/
@@ -50,4 +71,4 @@ smartdesk-ai/
 ├── tsconfig.json
 └── vitest.config.ts
 
-Phase 2 adds employee authentication and the dashboard shell only. Request management remains deferred to Phase 3.
+Phase 5 adds server-only OpenAI agent orchestration while preserving the deterministic public conversation and confirmation path. Phase 5b is planning only; attachment upload and Phase 6 remain deferred.

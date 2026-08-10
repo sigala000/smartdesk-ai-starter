@@ -146,6 +146,13 @@ Consequence:
 
 Permanent public URLs are prohibited.
 
+Phase 6 implementation note (2026-08-10): one private
+`private-attachments` bucket uses trusted
+`organization/target/random-attachment-UUID` paths. JPEG, PNG, and PDF files are
+limited to 10 MiB and validated from stored bytes before activation. Upload
+tokens are one-path capabilities and downloads expire after 60 seconds. Files
+are never sent to OpenAI automatically.
+
 ## ADR-010: Request reference is not authentication
 
 Status: Accepted
@@ -199,3 +206,39 @@ Superseded by:
 - 2026-08-07: Session cookies use the supported Supabase SSR client and Next.js request proxy for refresh, while server-side access resolution remains the authorization boundary.
 - 2026-08-07: Logout attempts global revocation first and then local session cleanup; if both operations fail, the application reports a sanitized failure instead of claiming the employee was signed out.
 - 2026-08-07: Protected-route authorization is regression-tested over HTTP against a real local Supabase Auth session. Next.js streamed redirects may return an HTTP 200 shell, so tests also verify the embedded redirect destination and absence of protected content.
+
+# Implemented Phase 3 request-management decisions
+
+- 2026-08-07: Request data access is isolated in organization-scoped repository modules; application services own permissions, workflow rules, and typed business outcomes.
+- 2026-08-07: Assignment, status, note, and request-information mutations use narrowly granted authenticated database functions. Tenant and actor identity come from Auth, and direct authenticated table writes are denied.
+- 2026-08-07: Request pagination uses `(created_at desc, id desc)` and a validated versioned cursor. Search is bounded and uses no new PostgreSQL extension at pilot scale.
+- 2026-08-07: The canonical documented status graph remains represented, but Phase 3 execution uses a closed transition-pair allowlist enforced identically by services and PostgreSQL. Admin, manager, and commercial roles may perform only the supported intake transitions; support officers are further limited to support/complaint requests; technical officers, project managers, and viewers receive no Phase 3 status mutations.
+- 2026-08-07: Status transitions that imply a site visit, quotation delivery or response, project authorization, completion, or administrative reopen fail closed until their required evidence models and authorization workflows exist. Free-text reasons and generic PDF attachments are not accepted as substitutes for structured provenance.
+- 2026-08-07: Internal notes use an employee-only allowlist and never enter customer-safe DTOs. Attachment storage paths, system/tool messages, and raw audit metadata are excluded from request APIs.
+- 2026-08-07: Request-more-information records an employee question only on an existing active conversation and never claims delivery. Public delivery/reply remains Phase 4/7 work.
+
+# Implemented Phase 4 public-conversation decisions
+
+- 2026-08-08: The complete customer request path is deterministic and has no OpenAI dependency. Phase 5 must reuse the same stored draft and confirmation transaction.
+- 2026-08-08: Public conversation authorization uses a 32-byte opaque secret in an HttpOnly same-site cookie. Only its SHA-256 digest is stored; conversation UUIDs and references are not authorization.
+- 2026-08-08: Draft fields live in a tenant-owned one-to-one table and remain authoritative. Messages are a preserved transcript and duplicate client message UUIDs do not advance the draft twice.
+- 2026-08-08: Confirmation accepts only a true confirmation flag, nonce, and idempotency UUID. A single database transaction reads the server draft, creates or resolves the customer, allocates the reference, creates and routes the request, links the conversation, records history, and audits creation.
+- 2026-08-08: Public APIs have no anonymous table grants. A server-only service-role adapter performs organization-scoped reads and controlled security-definer calls; the key never enters browser code.
+- 2026-08-08: Pilot public rate limits use atomically incremented PostgreSQL windows keyed by server-side HMAC subjects. Distributed and edge abuse controls remain Phase 9.
+
+# Implemented Phase 5 agent-orchestration decisions
+
+- 2026-08-10: OpenAI Responses API access is isolated in a `server-only` adapter. AI is explicitly configurable and the Phase 4 deterministic flow remains available when it is disabled or unavailable.
+- 2026-08-10: System instructions are version-controlled application policy. Organization configuration, customer messages, and knowledge excerpts are untrusted data and cannot replace those instructions.
+- 2026-08-10: The model receives a bounded customer-safe context and strict tool descriptions, never credentials or tenant authority. Organization and conversation scope come from the verified opaque-token context.
+- 2026-08-10: Structured conversation drafts remain authoritative. Model field proposals pass strict schemas and the public conversation application service; request creation continues through the Phase 4 confirmation transaction only.
+- 2026-08-10: The agent tool registry is limited to the six documented tools. Later-phase status, handoff, and attachment capabilities return unavailable until their dedicated services exist and may not simulate success.
+- 2026-08-10: Tool loops, history, input, output, and provider duration are bounded. Invalid output, injection attempts, provider errors, and loop exhaustion produce deterministic customer-safe responses.
+
+## 2026-08-10: Stateless agent continuation replays provider output
+
+Phase 5 keeps OpenAI response storage disabled. Tool-result continuation therefore replays the prior response output items alongside correlated function outputs rather than relying on `previous_response_id`. This preserves the server's stateless/privacy choice and follows the provider's stateless continuation contract.
+
+Only tools backed by completed application services are exposed to a model turn. The full six-tool registry remains as a defensive allowlist, but unavailable later-phase capabilities are not advertised and cannot produce a success claim.
+
+Final customer text is accepted only when deterministic validation finds no prohibited price, promise, prompt disclosure, unsupported company claim, ungrounded reference, or unverified action claim. Company and action claims must be supported by successful current-turn tool results. Structured draft fields remain authoritative, and replacing a populated field requires explicit customer correction evidence.
