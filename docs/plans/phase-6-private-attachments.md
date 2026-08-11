@@ -568,11 +568,14 @@ Before completion, rerun the full commands, inspect `git status --short`, `git d
 - **2026-08-10 — Do not expose attachment tools to OpenAI.** The deterministic UI/service already performs association, and model involvement would add risk without authority or user value.
 - **2026-08-10 — Record, but do not claim, malware scanning.** Phase 6 supplies lifecycle/interface support with `not_scanned`; it must never label files clean without a real scanner result.
 - **2026-08-10 — Preserve applied migrations.** The public confirmation function and attachment schema are changed only by a new forward migration.
+- **2026-08-10 — Close upload/confirmation races in PostgreSQL.** Confirmation is rejected while a customer attachment is pending or validating, and service-role activation locks the conversation before the attachment so an active file cannot be left without the confirmed request association.
+- **2026-08-10 — Fail closed without malware scanning.** The default runtime rejects completion when no scanner is configured. `ATTACHMENT_ALLOW_UNSCANNED=true` is a server-only, explicit pilot exception; it must not be enabled for production acceptance.
+- **2026-08-10 — Retain a 24-hour orphan grace period.** Application completion authorization expires after 10 minutes, but cleanup waits 24 hours before deleting pending/validating objects because the provider controls the signed-upload token lifetime. Deletion-pending rows use a short retry schedule.
 
 ## Known risks and limitations
 
-- MIME signatures reduce spoofing but are not a substitute for antivirus/malware scanning or full file-format validation.
-- Pilot files may remain `not_scanned` until a scanner is configured; production acceptance of that state requires an explicit security decision.
+- Structural signatures and terminal markers reduce spoofing but are not a substitute for antivirus/malware scanning or a complete format parser.
+- Pilot files may remain `not_scanned` only when the server-only `ATTACHMENT_ALLOW_UNSCANNED=true` exception is deliberately configured. The default fails closed, and production must use a real scanner.
 - A signed download URL already issued can remain usable for up to 60 seconds after invalidation.
 - Direct browser upload can leave an object without active metadata when a client disappears; cleanup is therefore required and must be scheduled in hosted deployment.
 - Customer access is intentionally lost after request confirmation because Phase 4 disables public conversation reads. A future authenticated status flow may add customer attachment downloads.
@@ -609,14 +612,14 @@ Implementation deviations from the initial file sketch:
 
 Verification completed successfully:
 
-- `npm run db:reset`: all eight migrations applied and production-safe seed ran.
+- `npm run db:reset`: all nine migrations applied and production-safe seed ran.
 - `npm run db:lint`: no schema errors.
-- `npm run db:test`: 127 pgTAP assertions passed; reference concurrency (20
+- `npm run db:test`: 135 pgTAP assertions passed; reference concurrency (20
   unique references), Employee Auth (12), protected routes (9), request routes
   (29), public conversation E2E, and Phase 6 real Storage checks passed.
 - `npm run lint`: passed with no warnings.
 - `npm run typecheck`: passed.
-- `npm test`: 21 files and 87 tests passed, including AI evaluations and Phase 6
+- `npm test`: 21 files and 89 tests passed, including AI evaluations and Phase 6
   validation tests.
 - `npm run format:check`: passed after formatting the Phase 6 CSS.
 - `npm run build`: Next.js 16.3 production build passed and emitted all Phase 6
@@ -626,5 +629,8 @@ Hosted deployment still requires applying the migration with the linked
 Supabase CLI, verifying that the hosted bucket is private and limited to the
 three MIME types/10 MiB, configuring the cleanup script with server-only
 credentials and a scheduler, and running post-deployment cross-tenant upload and
-download checks. The pilot scanner intentionally reports `not_scanned`; a real
-malware scanner remains the documented production-hardening extension point.
+download checks. The not-configured scanner reports `not_scanned`, and
+completion now fails closed by default. Local/pilot testing may explicitly set
+the server-only `ATTACHMENT_ALLOW_UNSCANNED=true` exception; production requires
+a real malware scanner. The follow-up hardening migration also serializes
+confirmation with attachment activation and prevents late customer uploads.

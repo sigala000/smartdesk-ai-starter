@@ -12,5 +12,5 @@ export type AttachmentUploadAuthorization = Readonly<{
   attachment: AttachmentDto;
   path: string;
   token: string;
-  expiresAt: string;
+  completionExpiresAt: string;
 }>;

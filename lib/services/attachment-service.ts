@@ -37,6 +37,7 @@ export type AttachmentErrorCode =
   | "invalid_filename"
   | "upload_expired"
   | "attachment_not_ready"
+  | "scan_unavailable"
   | "storage_unavailable"
   | "internal_error";
 export type AttachmentError = Readonly<{
@@ -55,6 +56,7 @@ const messages: Record<AttachmentErrorCode, string> = {
   invalid_filename: "The filename is invalid.",
   upload_expired: "The upload expired. Choose the file and try again.",
   attachment_not_ready: "The attachment is not available.",
+  scan_unavailable: "File safety scanning is temporarily unavailable.",
   storage_unavailable: "File storage is temporarily unavailable.",
   internal_error: "The attachment operation could not be completed.",
 };
@@ -77,6 +79,7 @@ export class AttachmentService {
   constructor(
     private readonly repository: AttachmentRepository,
     private readonly scanner: AttachmentScanner = new NotConfiguredAttachmentScanner(),
+    private readonly allowUnscanned = false,
   ) {}
 
   private async targetContext(
@@ -232,7 +235,7 @@ export class AttachmentService {
       attachment: dto(row),
       path: signed.value.path,
       token: signed.value.token,
-      expiresAt: row.expiresAt ?? new Date().toISOString(),
+      completionExpiresAt: row.expiresAt ?? new Date().toISOString(),
     });
   }
 
@@ -264,10 +267,9 @@ export class AttachmentService {
     if (!validating.ok) return failure(error("conflict"));
     const object = await this.repository.downloadObject(validating.value.path);
     if (!object.ok) {
-      await this.repository.reject(
+      await this.repository.markDeletionPending(
         validating.value.organizationId,
         attachmentId,
-        "object_missing",
       );
       return failure(error("storage_unavailable"));
     }
@@ -307,6 +309,19 @@ export class AttachmentService {
       return failure(error("invalid_file_content"));
     }
     const scan = await this.scanner.scan(bytes);
+    if (scan.status === "not_scanned" && !this.allowUnscanned) {
+      await this.repository.reject(
+        validating.value.organizationId,
+        attachmentId,
+        "scan_unavailable",
+      );
+      if (!(await this.repository.removeObject(validating.value.path)))
+        await this.repository.markDeletionPending(
+          validating.value.organizationId,
+          attachmentId,
+        );
+      return failure(error("scan_unavailable"));
+    }
     if (scan.status === "infected" || scan.status === "failed") {
       await this.repository.reject(
         validating.value.organizationId,

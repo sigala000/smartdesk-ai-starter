@@ -14,15 +14,27 @@ const client = createClient(url, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 const now = new Date().toISOString();
+const orphanGraceCutoff = new Date(
+  Date.now() - 24 * 60 * 60 * 1000,
+).toISOString();
 const result = await client
   .from("attachments")
-  .select("id,organization_id,storage_bucket,storage_path,upload_status")
+  .select(
+    "id,organization_id,storage_bucket,storage_path,upload_status,upload_expires_at,created_at",
+  )
   .in("upload_status", ["pending", "validating", "deletion_pending"])
-  .lt("upload_expires_at", now)
-  .limit(100);
+  .limit(500);
 if (result.error) throw result.error;
 
-for (const row of result.data) {
+const candidates = result.data
+  .filter((row) =>
+    row.upload_status === "deletion_pending"
+      ? Boolean(row.upload_expires_at && row.upload_expires_at < now)
+      : row.created_at < orphanGraceCutoff,
+  )
+  .slice(0, 100);
+
+for (const row of candidates) {
   const safePrefix = `${row.organization_id}/`;
   if (
     row.storage_bucket !== "private-attachments" ||
@@ -44,6 +56,8 @@ for (const row of result.data) {
       .update({
         upload_status: "deletion_pending",
         rejection_code: "cleanup_retry_required",
+        invalidated_at: now,
+        upload_expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
       })
       .eq("id", row.id)
       .eq("organization_id", row.organization_id);

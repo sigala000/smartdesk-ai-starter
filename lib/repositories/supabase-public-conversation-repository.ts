@@ -74,6 +74,7 @@ function safeRpcCode(message: string) {
       "routing_unavailable",
       "idempotency_conflict",
       "stale_draft",
+      "attachment_upload_in_progress",
     ].find((code) => message.includes(code)) ?? "internal_error"
   );
 }

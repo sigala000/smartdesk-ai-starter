@@ -82,6 +82,13 @@ Never expose:
 - Signing keys
 - Provider access tokens
 
+Phase 5b additionally keeps the Meta App Secret, webhook verify token, temporary
+Cloud API access token, and test-recipient allowlist in server-only environment
+configuration. POST authentication uses the raw-body HMAC; the signed
+destination phone-number ID maps to one database-configured tenant. Provider
+message IDs are unique per account and processing claims prevent webhook retries
+from repeating model/tool execution.
+
 Rules:
 
 - Store in environment secret management.

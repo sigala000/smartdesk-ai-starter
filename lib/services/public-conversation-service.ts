@@ -39,6 +39,7 @@ function mapFailure(code: string): PublicConversationError {
       "idempotency_conflict",
       "stale_draft",
       "conversation_closed",
+      "attachment_upload_in_progress",
     ].includes(code)
   )
     return {
@@ -46,7 +47,9 @@ function mapFailure(code: string): PublicConversationError {
       message:
         code === "draft_incomplete"
           ? "Complete the required questions before confirming."
-          : "The conversation changed. Refresh and try again.",
+          : code === "attachment_upload_in_progress"
+            ? "Wait for the attachment upload to finish or remove it before confirming."
+            : "The conversation changed. Refresh and try again.",
     };
   return {
     code: "internal_error",
@@ -154,6 +157,39 @@ export class PublicConversationService {
     return result.ok
       ? { success: true, draft: result.value.conversation.draft }
       : { success: false, errorCode: result.code };
+  }
+
+  async channelContext(id: string, tokenDigest: string) {
+    return this.repository.agentContext(id, tokenDigest);
+  }
+
+  async ensureChannelCustomerMessage(
+    id: string,
+    tokenDigest: string,
+    clientMessageId: string,
+    message: string,
+  ) {
+    return this.repository.existingAgentExchange(
+      id,
+      tokenDigest,
+      clientMessageId,
+      message,
+    );
+  }
+
+  async recordChannelReply(
+    context: TrustedAgentContext,
+    clientMessageId: string,
+    customerMessage: string,
+    assistantMessage: string,
+  ) {
+    return this.repository.recordAgentExchange(
+      context,
+      context.tokenDigest,
+      clientMessageId,
+      customerMessage,
+      assistantMessage,
+    );
   }
 
   async edit(id: string, tokenDigest: string, input: EditDraftInput) {

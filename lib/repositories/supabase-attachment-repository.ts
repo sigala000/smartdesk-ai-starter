@@ -192,22 +192,15 @@ export class SupabaseAttachmentRepository implements AttachmentRepository {
     actualSize: number,
     sha256: string,
   ) {
-    const result = await this.admin
-      .from("attachments")
-      .update({
-        upload_status: "active",
-        size_bytes: actualSize,
-        content_sha256: sha256,
-        completed_at: new Date().toISOString(),
-        upload_expires_at: null,
-        rejection_code: null,
-      })
-      .eq("organization_id", organizationId)
-      .eq("id", attachmentId)
-      .eq("upload_status", "validating")
-      .select("*")
-      .single();
+    const result = await this.admin.rpc("activate_private_attachment", {
+      p_actual_size: actualSize,
+      p_attachment_id: attachmentId,
+      p_organization_id: organizationId,
+      p_sha256: sha256,
+    });
     if (result.error) return fail("internal_error");
+    const row = result.data[0];
+    if (!row) return fail("internal_error");
     await this.admin.from("audit_events").insert({
       organization_id: organizationId,
       action: "attachment.activated",
@@ -215,7 +208,7 @@ export class SupabaseAttachmentRepository implements AttachmentRepository {
       entity_id: attachmentId,
       metadata: { source: "attachment_service" },
     });
-    return { ok: true as const, value: mapRow(result.data) };
+    return { ok: true as const, value: mapRow(row) };
   }
 
   async reject(organizationId: string, attachmentId: string, code: string) {
@@ -320,6 +313,6 @@ export class SupabaseAttachmentRepository implements AttachmentRepository {
       })
       .eq("organization_id", organizationId)
       .eq("id", attachmentId)
-      .in("upload_status", ["rejected", "invalidation_pending"]);
+      .in("upload_status", ["validating", "rejected", "invalidation_pending"]);
   }
 }

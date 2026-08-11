@@ -215,12 +215,20 @@ The `private-attachments` bucket is private; paths contain trusted tenant and
 target identifiers plus a random UUID, never an original filename. Stored bytes
 are type/size validated before activation and are not placed in agent context.
 
+Phase 5b adds a test-only WhatsApp transport adapter. Meta webhook signatures
+are verified over raw bytes before a trusted destination phone-number mapping
+selects the tenant. Durable provider delivery rows deduplicate and claim each
+turn, while the existing `PublicConversationService`, Phase 5 orchestrator,
+stored draft, and confirmation transaction remain the only conversation and
+request workflow.
+
 ### Integration layer
 
 Directories:
 
 ```text
 lib/openai/
+lib/meta/
 lib/supabase/
 ```
 

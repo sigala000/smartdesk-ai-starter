@@ -242,3 +242,11 @@ Phase 5 keeps OpenAI response storage disabled. Tool-result continuation therefo
 Only tools backed by completed application services are exposed to a model turn. The full six-tool registry remains as a defensive allowlist, but unavailable later-phase capabilities are not advertised and cannot produce a success claim.
 
 Final customer text is accepted only when deterministic validation finds no prohibited price, promise, prompt disclosure, unsupported company claim, ungrounded reference, or unverified action claim. Company and action claims must be supported by successful current-turn tool results. Structured draft fields remain authoritative, and replacing a populated field requires explicit customer correction evidence.
+
+# Implemented Phase 5b WhatsApp test decisions
+
+- 2026-08-10: Meta's developer test number is a transport adapter around the existing public conversation service and Phase 5 orchestrator; it has no separate agent, prompt, draft workflow, request creator, or reference allocator.
+- 2026-08-10: A signature-verified destination phone-number ID resolves one active test account and organization. Sender content, profile names, and model output cannot select tenant scope.
+- 2026-08-10: Provider-message uniqueness and database processing claims precede model execution. Canonical customer content is committed by the existing conversation service before the shared agent is invoked.
+- 2026-08-10: WhatsApp confirmation is recognized only from the authoritative review stage, issues server-held nonce material, and calls the existing idempotent `confirm_public_request` transaction.
+- 2026-08-10: Outbound prose and intent are persisted before Meta sending. Ambiguous provider failures are not blindly retried because Cloud API text sends have no application-controlled idempotency key.

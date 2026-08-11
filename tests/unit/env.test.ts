@@ -6,11 +6,49 @@ import {
   parseServerEnvironment,
   requireSupabasePublicConfig,
   requireOpenAIConfig,
+  requireWhatsAppConfig,
 } from "@/lib/config/env-schema";
 
 describe("environment validation", () => {
   it("accepts an empty Phase 0 environment", () => {
     expect(parseServerEnvironment({})).toEqual({});
+  });
+
+  it("validates the unscanned-attachment safety switch", () => {
+    expect(
+      parseServerEnvironment({ ATTACHMENT_ALLOW_UNSCANNED: "false" }),
+    ).toMatchObject({ ATTACHMENT_ALLOW_UNSCANNED: false });
+    expect(() =>
+      parseServerEnvironment({ ATTACHMENT_ALLOW_UNSCANNED: "yes" }),
+    ).toThrow(EnvironmentValidationError);
+  });
+
+  it("requires every server-only WhatsApp value only when enabled", () => {
+    expect(requireWhatsAppConfig(parseServerEnvironment({}))).toBeNull();
+    expect(() =>
+      requireWhatsAppConfig(
+        parseServerEnvironment({ META_WHATSAPP_ENABLED: "true" }),
+      ),
+    ).toThrow(EnvironmentValidationError);
+    expect(
+      requireWhatsAppConfig(
+        parseServerEnvironment({
+          META_WHATSAPP_ENABLED: "true",
+          META_GRAPH_API_VERSION: "v99.0",
+          META_APP_ID: "123456789",
+          META_APP_SECRET: "app-secret-at-least-sixteen",
+          META_WHATSAPP_VERIFY_TOKEN: "v".repeat(64),
+          META_WHATSAPP_ACCESS_TOKEN: "temporary-test-token",
+          META_WHATSAPP_PHONE_NUMBER_ID: "12345678901",
+          META_WHATSAPP_BUSINESS_ACCOUNT_ID: "98765432101",
+          META_WHATSAPP_TEST_RECIPIENT: "+237600000001",
+        }),
+      ),
+    ).toMatchObject({
+      graphApiVersion: "v99.0",
+      phoneNumberId: "12345678901",
+      testRecipient: "237600000001",
+    });
   });
 
   it("normalizes empty optional values", () => {

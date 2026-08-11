@@ -118,6 +118,7 @@ async function run() {
         OPENAI_ENABLED: "false",
         PUBLIC_RATE_LIMIT_SECRET:
           "attachment-route-test-secret-at-least-32-chars",
+        ATTACHMENT_ALLOW_UNSCANNED: "true",
       },
       stdio: ["ignore", "ignore", "inherit"],
     },
@@ -194,6 +195,18 @@ async function run() {
     assert(
       download.payload.expiresIn === 60,
       "download lifetime is not 60 seconds",
+    );
+    const downloadToken = new URL(download.payload.url).searchParams.get(
+      "token",
+    );
+    assert(downloadToken, "signed download token is missing");
+    const downloadClaims = JSON.parse(
+      Buffer.from(downloadToken.split(".")[1], "base64url").toString("utf8"),
+    );
+    const remainingSeconds = downloadClaims.exp - Math.floor(Date.now() / 1000);
+    assert(
+      remainingSeconds > 0 && remainingSeconds <= 65,
+      "Storage signed URL exceeds the 60-second application policy",
     );
 
     const invalidBytes = new TextEncoder().encode("<html>");
@@ -294,7 +307,10 @@ async function run() {
       password,
     );
     const png = new Uint8Array([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x49, 0x45, 0x4e, 0x44, 0x00, 0x00, 0x00, 0x00,
     ]);
     const employeePresign = await json(
       "/api/attachments/presign",
@@ -338,6 +354,188 @@ async function run() {
       employeeCookie,
     );
     assert(employeeDownload.response.ok, "employee signed download failed");
+
+    const otherOrganizationId = randomUUID();
+    const otherDepartmentId = randomUUID();
+    const otherServiceId = randomUUID();
+    const otherCustomerId = randomUUID();
+    const otherRequestId = randomUUID();
+    const otherOrganization = await admin.from("organizations").insert({
+      id: otherOrganizationId,
+      name: "Phase 6 Other Tenant",
+      slug: `phase-6-other-${randomUUID()}`,
+      reference_prefix: `Z${randomUUID().replaceAll("-", "").slice(0, 7).toUpperCase()}`,
+    });
+    assert(!otherOrganization.error, "other organization creation failed");
+    const otherDepartment = await admin.from("departments").insert({
+      id: otherDepartmentId,
+      organization_id: otherOrganizationId,
+      name: "Other Support",
+    });
+    assert(!otherDepartment.error, "other department creation failed");
+    const otherService = await admin.from("services").insert({
+      id: otherServiceId,
+      organization_id: otherOrganizationId,
+      department_id: otherDepartmentId,
+      name: "Other Service",
+    });
+    assert(!otherService.error, "other service creation failed");
+    const otherCustomer = await admin.from("customers").insert({
+      id: otherCustomerId,
+      organization_id: otherOrganizationId,
+      full_name: "Other Customer",
+    });
+    assert(!otherCustomer.error, "other customer creation failed");
+    const otherRequest = await admin.from("requests").insert({
+      id: otherRequestId,
+      organization_id: otherOrganizationId,
+      customer_id: otherCustomerId,
+      service_id: otherServiceId,
+      department_id: otherDepartmentId,
+      request_type: "quotation",
+      status: "new",
+      title: "Other request",
+      description: "Cross-tenant attachment test",
+      location: "Yaounde",
+      idempotency_key: randomUUID(),
+      confirmed_at: new Date().toISOString(),
+    });
+    assert(!otherRequest.error, "other request creation failed");
+    const otherEmail = `phase-6-other-${randomUUID()}@example.test`;
+    const otherUser = await admin.auth.admin.createUser({
+      email: otherEmail,
+      password,
+      email_confirm: true,
+    });
+    assert(
+      !otherUser.error && otherUser.data.user,
+      "other user creation failed",
+    );
+    const otherMember = await admin
+      .from("organization_members")
+      .insert({
+        organization_id: otherOrganizationId,
+        user_id: otherUser.data.user.id,
+        role: "manager",
+        department_id: otherDepartmentId,
+        display_name: "Other Manager",
+      })
+      .select("id")
+      .single();
+    assert(!otherMember.error, "other membership creation failed");
+    const otherCookie = await signIn(
+      environment.url,
+      environment.anonKey,
+      otherEmail,
+      password,
+    );
+    const crossTenantDownload = await json(
+      `/api/attachments/${employeePresign.payload.attachment.id}/download`,
+      otherCookie,
+    );
+    assert(
+      crossTenantDownload.response.status === 404,
+      "an employee could download another tenant's attachment",
+    );
+    const deactivated = await admin
+      .from("organization_members")
+      .update({ is_active: false })
+      .eq("id", otherMember.data.id);
+    assert(!deactivated.error, "membership deactivation failed");
+    const deactivatedPresign = await json(
+      "/api/attachments/presign",
+      otherCookie,
+      {
+        target: { kind: "request", requestId: otherRequestId },
+        clientUploadId: randomUUID(),
+        filename: "blocked.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: bytes.length,
+      },
+    );
+    assert(
+      deactivatedPresign.response.status === 403,
+      "a deactivated employee could initiate an attachment upload",
+    );
+
+    const oldAttachmentId = randomUUID();
+    const oldPath = `10000000-0000-4000-8000-000000000001/conversation/${first.id}/${oldAttachmentId}.pdf`;
+    const oldObject = await admin.storage
+      .from("private-attachments")
+      .upload(oldPath, bytes, { contentType: "application/pdf" });
+    assert(!oldObject.error, "cleanup fixture upload failed");
+    const oldMetadata = await admin.from("attachments").insert({
+      id: oldAttachmentId,
+      organization_id: "10000000-0000-4000-8000-000000000001",
+      conversation_id: first.id,
+      storage_bucket: "private-attachments",
+      storage_path: oldPath,
+      original_filename: "old.pdf",
+      mime_type: "application/pdf",
+      size_bytes: bytes.length,
+      upload_status: "pending",
+      upload_expires_at: new Date(Date.now() - 25 * 60 * 60_000).toISOString(),
+      uploaded_by_type: "customer",
+      client_upload_id: randomUUID(),
+      created_at: new Date(Date.now() - 25 * 60 * 60_000).toISOString(),
+    });
+    assert(!oldMetadata.error, "cleanup fixture metadata failed");
+    const recentAttachmentId = randomUUID();
+    const recentPath = `10000000-0000-4000-8000-000000000001/conversation/${first.id}/${recentAttachmentId}.pdf`;
+    const recentObject = await admin.storage
+      .from("private-attachments")
+      .upload(recentPath, bytes, { contentType: "application/pdf" });
+    assert(!recentObject.error, "recent cleanup fixture upload failed");
+    const recentMetadata = await admin.from("attachments").insert({
+      id: recentAttachmentId,
+      organization_id: "10000000-0000-4000-8000-000000000001",
+      conversation_id: first.id,
+      storage_bucket: "private-attachments",
+      storage_path: recentPath,
+      original_filename: "recent.pdf",
+      mime_type: "application/pdf",
+      size_bytes: bytes.length,
+      upload_status: "pending",
+      upload_expires_at: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
+      uploaded_by_type: "customer",
+      client_upload_id: randomUUID(),
+      created_at: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
+    });
+    assert(!recentMetadata.error, "recent cleanup fixture metadata failed");
+    execFileSync(
+      process.execPath,
+      [
+        fileURLToPath(
+          new URL("./cleanup-abandoned-attachments.mjs", import.meta.url),
+        ),
+      ],
+      {
+        env: {
+          ...process.env,
+          NEXT_PUBLIC_SUPABASE_URL: environment.url,
+          SUPABASE_SERVICE_ROLE_KEY: environment.serviceRoleKey,
+        },
+        stdio: "ignore",
+      },
+    );
+    const cleaned = await admin
+      .from("attachments")
+      .select("upload_status")
+      .eq("id", oldAttachmentId)
+      .single();
+    assert(
+      !cleaned.error && cleaned.data.upload_status === "deleted",
+      "abandoned attachment cleanup did not close metadata",
+    );
+    const retained = await admin
+      .from("attachments")
+      .select("upload_status")
+      .eq("id", recentAttachmentId)
+      .single();
+    assert(
+      !retained.error && retained.data.upload_status === "pending",
+      "cleanup removed an object inside the provider-token grace period",
+    );
     console.log("Phase 6 attachment route and private Storage checks passed");
   } finally {
     child.kill("SIGTERM");

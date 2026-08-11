@@ -11,12 +11,17 @@ import { attachmentPresignSchema } from "@/lib/schemas/attachment-api";
 
 describe("attachment validation", () => {
   it.each([
-    [new Uint8Array([0xff, 0xd8, 0xff, 0]), "image/jpeg"],
+    [new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), "image/jpeg"],
     [
-      new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      new Uint8Array([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x49, 0x45, 0x4e, 0x44, 0x00, 0x00, 0x00, 0x00,
+      ]),
       "image/png",
     ],
-    [new TextEncoder().encode("%PDF-1.7"), "application/pdf"],
+    [new TextEncoder().encode("%PDF-1.7\n%%EOF"), "application/pdf"],
   ] as const)("detects allowed file signatures", (bytes, expected) => {
     expect(detectAttachmentMimeType(bytes)).toBe(expected);
   });
@@ -24,6 +29,17 @@ describe("attachment validation", () => {
   it("rejects content that only claims an allowed type", () => {
     expect(
       detectAttachmentMimeType(new TextEncoder().encode("<script>")),
+    ).toBeNull();
+  });
+
+  it("rejects truncated and active-content polyglots", () => {
+    expect(
+      detectAttachmentMimeType(new Uint8Array([0xff, 0xd8, 0xff])),
+    ).toBeNull();
+    expect(
+      detectAttachmentMimeType(
+        new TextEncoder().encode("%PDF-1.7\n<script>alert(1)</script>\n%%EOF"),
+      ),
     ).toBeNull();
   });
 
@@ -51,6 +67,10 @@ describe("attachment validation", () => {
     expect(filenameMatchesMimeType("plan.pdf.exe", "application/pdf")).toBe(
       false,
     );
+    expect(filenameMatchesMimeType("invoice.exe.pdf", "application/pdf")).toBe(
+      false,
+    );
+    expect(sanitizeAttachmentFilename("safe\u202Efdp.exe")).toBeNull();
   });
 
   it("enforces the exact type and 10 MiB limit in the API schema", () => {

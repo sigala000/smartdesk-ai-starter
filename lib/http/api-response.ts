@@ -97,6 +97,7 @@ export function apiAttachmentError(error: AttachmentError) {
     invalid_filename: 400,
     upload_expired: 410,
     attachment_not_ready: 409,
+    scan_unavailable: 503,
     storage_unavailable: 503,
     internal_error: 500,
   };

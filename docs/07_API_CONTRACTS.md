@@ -401,20 +401,29 @@ Requirements:
 - Status transition validation
 - No AI-generated amount is treated as approved
 
-## Webhook endpoint placeholder
+## WhatsApp developer-test webhook
+
+### GET /api/webhooks/whatsapp
+
+Performs Meta's verification challenge. It returns the plain challenge only
+when `hub.mode=subscribe` and the bounded verify token matches server
+configuration. The token is never logged or returned on failure.
 
 ### POST /api/webhooks/whatsapp
 
-Out of MVP production scope.
+This remains outside production MVP scope and supports only Meta's developer
+test number plus the configured authorized test recipient.
 
-When implemented:
+- Requires `X-Hub-Signature-256` HMAC validation over the exact raw body.
+- Accepts bounded WhatsApp Business Account `messages` envelopes and text turns.
+- Deduplicates `(trusted account, provider message ID)` before model spend.
+- Resolves organization from the configured destination phone-number ID.
+- Persists inbound canonical messages before invoking the shared Phase 5 agent.
+- Persists assistant replies/outbox state before the server-only Meta send.
+- Returns sanitized plain responses and an internal trace ID only in redacted logs.
 
-- Verify provider signature.
-- Deduplicate provider message ID.
-- Resolve organization from configured phone number.
-- Persist raw minimal metadata securely.
-- Process asynchronously where appropriate.
-- Never trust tenant identifiers inside message text.
+It does not accept tenant IDs, access tokens, request fields, or references from
+the webhook body. Unsupported media never reaches OpenAI.
 
 ## Internal service contracts
 

@@ -600,7 +600,7 @@ Each milestone must leave web chat, deterministic fallback, and Phase 5 evaluati
 
 ## Acceptance criteria
 
-- [ ] Meta's app remains in Development mode and uses its test number plus an authorized test recipient only.
+- [x] Meta's app remains in Development mode and uses its test number plus an authorized test recipient only.
 - [ ] All required portal actions and secrets are documented; secrets are placed directly in secret storage and absent from Git/chat/client bundles.
 - [ ] GET webhook verification returns the challenge only for a matching server verify token.
 - [ ] POST webhook processing requires a valid raw-body `X-Hub-Signature-256` HMAC before parsing or database access.
@@ -620,7 +620,7 @@ Each milestone must leave web chat, deterministic fallback, and Phase 5 evaluati
 - [ ] Account/sender/AI rate limits and bounded retry leases prevent abuse and retry storms without losing authentic messages.
 - [ ] Errors and logs are sanitized and carry internal trace IDs without message bodies, full phone numbers, payloads, secrets, prompts, or credentials.
 - [ ] Unit, mocked webhook, database/RLS, concurrency, cross-tenant, Phase 4 E2E, Phase 5 AI evaluation, lint, strict typecheck, formatting, build, and secret scans pass.
-- [ ] Manual Meta verification, inbound/outbound text, deterministic outage fallback, and one complete synthetic confirmed request pass using the test number.
+- [ ] Meta callback verification and the signed dashboard test pass; a tenant-matched signed synthetic inbound was persisted and produced a real deterministic-fallback reply to the authorized handset. Meta's unpublished-app restriction prevented a real handset inbound webhook, and a complete confirmed quotation remains deferred until a stable published test deployment is approved.
 - [ ] No production number, production token workflow, marketing/template system, separate agent, Phase 6 attachment behavior, or other later-phase feature is implemented.
 
 ## Security review checklist
@@ -647,12 +647,12 @@ Each milestone must leave web chat, deterministic fallback, and Phase 5 evaluati
 - [x] Reconcile the test integration with the explicit production-WhatsApp non-goal.
 - [x] Review current Meta setup concepts for the test number, authorized recipient, verification challenge, POST signature, and messages endpoint; reverify exact portal labels/API version during implementation.
 - [x] Create the Phase 5b execution plan only.
-- [ ] User reviews and approves this plan.
-- [ ] Milestone 1: configuration, additive migration, RLS, functions, and database tests.
-- [ ] Milestone 2: secure webhook and Meta transport adapter.
-- [ ] Milestone 3: shared conversation/agent/confirmation integration.
-- [ ] Milestone 4: recovery, rate limits, observability, tests, docs, and manual Meta validation.
-- [ ] Run all acceptance commands and record exact results.
+- [x] User reviewed and approved this plan through the Phase 5b implementation request.
+- [x] Milestone 1: configuration, additive migration, RLS, functions, and database tests.
+- [x] Milestone 2: secure webhook and Meta transport adapter.
+- [x] Milestone 3: shared conversation/agent/confirmation integration.
+- [x] Milestone 4: recovery, rate limits, observability, tests, docs, and manual Meta instructions.
+- [x] Run all locally available acceptance commands and record exact results; live Meta Portal/handset checks remain manual.
 
 ## Decision log
 
@@ -666,6 +666,8 @@ Each milestone must leave web chat, deterministic fallback, and Phase 5 evaluati
 - 2026-08-10: Start with text messages and customer-initiated replies in Meta's test environment. Media and production template messaging require separate review.
 - 2026-08-10: Reuse the existing confirmation RPC and backend reference allocator. Any necessary channel-neutral adapter must preserve server-stored draft, explicit confirmation, and idempotency rather than add direct request inserts.
 - 2026-08-10: Use Node's built-in `crypto` and `fetch` initially; no Meta SDK dependency is justified for this narrow surface.
+- 2026-08-11: Meta's current dashboard signs `messages` samples with synthetic WABA ID `"0"`. The envelope validator accepts that signed test identifier, while trusted tenant resolution still ignores it because it cannot match a configured account.
+- 2026-08-11: The portal fixed the webhook field subscription at v26.0 while the temporary outbound Graph API token used v25.0. Both paths passed independently; inbound schema compatibility is not coupled to the outbound endpoint version.
 
 ## Known risks and limitations
 
@@ -682,4 +684,41 @@ Each milestone must leave web chat, deterministic fallback, and Phase 5 evaluati
 
 ## Completion notes
 
-Planning only. No Meta app, portal setting, environment secret, database migration, route, integration, application code, dependency, test, or production configuration was created or changed in this task.
+Implemented locally on 2026-08-10 without beginning Phase 7. The implementation
+adds a version-controlled developer-test channel migration, raw-body webhook
+authentication, strict envelope parsing, trusted destination-to-tenant mapping,
+durable provider deduplication and processing claims, customer/conversation
+mapping, the server-only Meta sender, and mocked plus database security tests.
+
+WhatsApp calls the existing `PublicConversationService`, Phase 5 orchestrator,
+stored draft, deterministic fallback, and Phase 4 confirmation transaction. The
+first confirmation at review issues and displays a server-built structured
+summary; a subsequent explicit confirmation reuses the stored nonce digest and
+stable server-derived idempotency key. No Meta secret, recipient, account ID, or
+hosted configuration was guessed or committed.
+
+Manual Meta Portal setup, temporary secret configuration, hosted migrations, and
+the trusted BuildPro account mapping were completed on 2026-08-11. A temporary
+HTTPS tunnel passed callback verification and Meta's signed v26.0 dashboard
+test. Because Meta explicitly suppresses real data while this app is
+unpublished, a tenant-matched signed synthetic inbound exercised persistence,
+the deterministic fallback, Meta outbound delivery, and receipt on the
+authorized handset. The temporary subscription was then removed, the tunnel
+was stopped, and the verify token was rotated. A stable public deployment and
+published-app review remain required before real handset inbound messages can
+be validated. Production WhatsApp, media, templates, and automatic retries
+after ambiguous outbound timeouts remain out of scope.
+
+Local verification results:
+
+- `npm run db:reset` applied all ten migrations and the production-safe seed.
+- The repository-pinned `supabase test db` passed 160 assertions across 11 files.
+- `npm run db:lint` reported no schema errors.
+- `npm run test:whatsapp` passed 20 tests across five files after adding the signed Meta dashboard-test compatibility regression.
+- `npm test` passed 110 tests across 26 files.
+- `npm run test:ai` passed 28 tests across five files.
+- `npm run lint`, `npm run typecheck`, and `npm run format:check` passed.
+- `npm run build` passed and emitted the dynamic WhatsApp webhook route.
+- The complete `npm run db:test` integration command passed the database,
+  reference concurrency, employee Auth, protected route, request, public
+  conversation, and private Storage checks.
