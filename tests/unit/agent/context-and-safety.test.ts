@@ -57,6 +57,15 @@ describe("agent context and output safety", () => {
     expect(validateCustomerSafeOutput("The price is XAF 500000")).toBeNull();
     expect(validateCustomerSafeOutput("An employee has joined")).toBeNull();
     expect(
+      validateCustomerSafeOutput("A representative is with you now"),
+    ).toBeNull();
+    expect(
+      validateCustomerSafeOutput("You are connected to a human"),
+    ).toBeNull();
+    expect(
+      validateCustomerSafeOutput("An officer took over the chat"),
+    ).toBeNull();
+    expect(
       validateCustomerSafeOutput("It should cost about 500,000 FCFA."),
     ).toBeNull();
     expect(

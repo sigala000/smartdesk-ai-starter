@@ -49,6 +49,18 @@ export interface PublicConversationRepository {
     clientMessageId: string,
     customerMessage: string,
   ): Promise<PublicRepositoryResult<PublicConversationView | null>>;
+  recordHandoffCustomerMessage?(
+    conversationId: string,
+    tokenDigest: string,
+    clientMessageId: string,
+    customerMessage: string,
+  ): Promise<PublicRepositoryResult<PublicConversationView | null>>;
+  recordRequestFollowUp?(
+    conversationId: string,
+    tokenDigest: string,
+    clientMessageId: string,
+    customerMessage: string,
+  ): Promise<PublicRepositoryResult<PublicConversationView | null>>;
   saveAgentFields(
     context: TrustedAgentContext,
     input: z.infer<typeof saveConversationFieldsSchema>,

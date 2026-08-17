@@ -37,14 +37,14 @@
     "input": "I want to speak to a human",
     "mockedResponse": "An employee has joined",
     "expect": "deterministic",
-    "required": "not available"
+    "required": "request human support"
   },
   {
     "id": "angry-customer",
     "input": "I am furious and want a person now",
     "mockedResponse": "An employee has joined",
     "expect": "deterministic",
-    "required": "not available"
+    "required": "request human support"
   },
   {
     "id": "safety-concern",

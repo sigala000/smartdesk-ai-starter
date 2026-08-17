@@ -86,12 +86,15 @@ export type Database = {
       }
       attachments: {
         Row: {
+          approved_at: string | null
+          approved_by_member_id: string | null
           client_upload_id: string
           completed_at: string | null
           content_sha256: string | null
           conversation_id: string | null
           created_at: string
           deleted_at: string | null
+          document_kind: string
           id: string
           invalidated_at: string | null
           message_id: string | null
@@ -110,12 +113,15 @@ export type Database = {
           uploaded_by_type: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by_member_id?: string | null
           client_upload_id?: string
           completed_at?: string | null
           content_sha256?: string | null
           conversation_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          document_kind?: string
           id?: string
           invalidated_at?: string | null
           message_id?: string | null
@@ -134,12 +140,15 @@ export type Database = {
           uploaded_by_type?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by_member_id?: string | null
           client_upload_id?: string
           completed_at?: string | null
           content_sha256?: string | null
           conversation_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          document_kind?: string
           id?: string
           invalidated_at?: string | null
           message_id?: string | null
@@ -158,6 +167,13 @@ export type Database = {
           uploaded_by_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "attachments_approved_by_member_fkey"
+            columns: ["organization_id", "approved_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "attachments_conversation_fk"
             columns: ["organization_id", "conversation_id"]
@@ -552,44 +568,68 @@ export type Database = {
       }
       human_handoffs: {
         Row: {
+          activated_at: string | null
+          assigned_at: string | null
           assigned_member_id: string | null
+          cancelled_at: string | null
           conversation_id: string
           created_at: string
           id: string
+          idempotency_key: string
           organization_id: string
           priority: string
+          queued_at: string | null
           reason: string
+          reason_code: string
           request_id: string | null
           requested_at: string
+          resolution: string | null
           resolved_at: string | null
+          resume_automation: boolean | null
           status: string
           updated_at: string
         }
         Insert: {
+          activated_at?: string | null
+          assigned_at?: string | null
           assigned_member_id?: string | null
+          cancelled_at?: string | null
           conversation_id: string
           created_at?: string
           id?: string
+          idempotency_key?: string
           organization_id: string
           priority?: string
+          queued_at?: string | null
           reason: string
+          reason_code?: string
           request_id?: string | null
           requested_at?: string
+          resolution?: string | null
           resolved_at?: string | null
+          resume_automation?: boolean | null
           status?: string
           updated_at?: string
         }
         Update: {
+          activated_at?: string | null
+          assigned_at?: string | null
           assigned_member_id?: string | null
+          cancelled_at?: string | null
           conversation_id?: string
           created_at?: string
           id?: string
+          idempotency_key?: string
           organization_id?: string
           priority?: string
+          queued_at?: string | null
           reason?: string
+          reason_code?: string
           request_id?: string | null
           requested_at?: string
+          resolution?: string | null
           resolved_at?: string | null
+          resume_automation?: boolean | null
           status?: string
           updated_at?: string
         }
@@ -1285,6 +1325,194 @@ export type Database = {
           },
         ]
       }
+      status_verification_challenges: {
+        Row: {
+          attempt_count: number
+          code_digest: string
+          consumed_at: string | null
+          created_at: string
+          delivery_outcome: string
+          expires_at: string
+          id: string
+          locked_until: string | null
+          max_attempts: number
+          organization_id: string | null
+          request_id: string | null
+          state: string
+          subject_digest: string
+          superseded_at: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          code_digest: string
+          consumed_at?: string | null
+          created_at?: string
+          delivery_outcome?: string
+          expires_at: string
+          id?: string
+          locked_until?: string | null
+          max_attempts: number
+          organization_id?: string | null
+          request_id?: string | null
+          state?: string
+          subject_digest: string
+          superseded_at?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          code_digest?: string
+          consumed_at?: string | null
+          created_at?: string
+          delivery_outcome?: string
+          expires_at?: string
+          id?: string
+          locked_until?: string | null
+          max_attempts?: number
+          organization_id?: string | null
+          request_id?: string | null
+          state?: string
+          subject_digest?: string
+          superseded_at?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_verification_challenges_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "status_verification_challenges_organization_id_request_id_fkey"
+            columns: ["organization_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      status_verification_events: {
+        Row: {
+          challenge_id: string | null
+          created_at: string
+          event_type: string
+          id: number
+          organization_id: string | null
+          outcome_code: string
+          subject_digest: string
+          trace_id: string
+        }
+        Insert: {
+          challenge_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: never
+          organization_id?: string | null
+          outcome_code: string
+          subject_digest: string
+          trace_id: string
+        }
+        Update: {
+          challenge_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: never
+          organization_id?: string | null
+          outcome_code?: string
+          subject_digest?: string
+          trace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_verification_events_organization_id_challenge_id_fkey"
+            columns: ["organization_id", "challenge_id"]
+            isOneToOne: false
+            referencedRelation: "status_verification_challenges"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "status_verification_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_verification_tokens: {
+        Row: {
+          access_kind: string
+          challenge_id: string
+          consumed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          organization_id: string
+          request_id: string
+          revoked_at: string | null
+          token_digest: string
+        }
+        Insert: {
+          access_kind?: string
+          challenge_id: string
+          consumed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          organization_id: string
+          request_id: string
+          revoked_at?: string | null
+          token_digest: string
+        }
+        Update: {
+          access_kind?: string
+          challenge_id?: string
+          consumed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          request_id?: string
+          revoked_at?: string | null
+          token_digest?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_verification_tokens_organization_id_challenge_id_fkey"
+            columns: ["organization_id", "challenge_id"]
+            isOneToOne: false
+            referencedRelation: "status_verification_challenges"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "status_verification_tokens_organization_id_conversation_id_fkey"
+            columns: ["organization_id", "conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "status_verification_tokens_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "status_verification_tokens_organization_id_request_id_fkey"
+            columns: ["organization_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       whatsapp_accounts: {
         Row: {
           created_at: string
@@ -1550,12 +1778,15 @@ export type Database = {
           p_sha256: string
         }
         Returns: {
+          approved_at: string | null
+          approved_by_member_id: string | null
           client_upload_id: string
           completed_at: string | null
           content_sha256: string | null
           conversation_id: string | null
           created_at: string
           deleted_at: string | null
+          document_kind: string
           id: string
           invalidated_at: string | null
           message_id: string | null
@@ -1594,6 +1825,73 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "internal_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      approve_quotation_attachment: {
+        Args: { p_attachment_id: string; p_request_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by_member_id: string | null
+          client_upload_id: string
+          completed_at: string | null
+          content_sha256: string | null
+          conversation_id: string | null
+          created_at: string
+          deleted_at: string | null
+          document_kind: string
+          id: string
+          invalidated_at: string | null
+          message_id: string | null
+          mime_type: string
+          organization_id: string
+          original_filename: string
+          rejection_code: string | null
+          request_id: string | null
+          scan_status: string
+          size_bytes: number
+          storage_bucket: string
+          storage_path: string
+          upload_expires_at: string | null
+          upload_status: string
+          uploaded_by_member_id: string | null
+          uploaded_by_type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "attachments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      assign_handoff: {
+        Args: { p_handoff_id: string; p_member_id: string }
+        Returns: {
+          activated_at: string | null
+          assigned_at: string | null
+          assigned_member_id: string | null
+          cancelled_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          organization_id: string
+          priority: string
+          queued_at: string | null
+          reason: string
+          reason_code: string
+          request_id: string | null
+          requested_at: string
+          resolution: string | null
+          resolved_at: string | null
+          resume_automation: boolean | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "human_handoffs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1641,6 +1939,13 @@ export type Database = {
         Args: { p_delivery_id: string; p_organization_id: string }
         Returns: boolean
       }
+      claim_whatsapp_outbound: {
+        Args: { p_inbound_delivery_id: string; p_organization_id: string }
+        Returns: {
+          delivery_id: string
+          message_content: string
+        }[]
+      }
       complete_whatsapp_delivery: {
         Args: {
           p_delivery_id: string
@@ -1649,6 +1954,10 @@ export type Database = {
           p_trace_id: string
         }
         Returns: string
+      }
+      complete_whatsapp_handoff_delivery: {
+        Args: { p_delivery_id: string; p_organization_id: string }
+        Returns: boolean
       }
       confirm_public_request: {
         Args: {
@@ -1665,6 +1974,20 @@ export type Database = {
           status: string
         }[]
       }
+      consume_conversation_status_grant: {
+        Args: {
+          p_conversation_id: string
+          p_organization_id: string
+          p_reference_number: string
+          p_trace_id: string
+        }
+        Returns: {
+          reference_number: string
+          service_name: string
+          status: string
+          updated_at: string
+        }[]
+      }
       consume_public_rate_limit: {
         Args: {
           p_action: string
@@ -1675,6 +1998,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      consume_status_token: {
+        Args: {
+          p_reference_number: string
+          p_token_digest: string
+          p_trace_id: string
+        }
+        Returns: {
+          reference_number: string
+          service_name: string
+          status: string
+          updated_at: string
+        }[]
+      }
       create_public_conversation: {
         Args: { p_organization_slug: string; p_token_digest: string }
         Returns: {
@@ -1682,6 +2018,18 @@ export type Database = {
           created_at: string
           organization_id: string
           organization_name: string
+        }[]
+      }
+      find_status_target: {
+        Args: { p_organization_slug: string; p_reference_number: string }
+        Returns: {
+          organization_id: string
+          phone: string
+          reference_number: string
+          request_id: string
+          service_name: string
+          status: string
+          updated_at: string
         }[]
       }
       ingest_whatsapp_text_message: {
@@ -1708,6 +2056,37 @@ export type Database = {
           organization_id: string
         }[]
       }
+      join_handoff: {
+        Args: { p_handoff_id: string }
+        Returns: {
+          activated_at: string | null
+          assigned_at: string | null
+          assigned_member_id: string | null
+          cancelled_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          organization_id: string
+          priority: string
+          queued_at: string | null
+          reason: string
+          reason_code: string
+          request_id: string | null
+          requested_at: string
+          resolution: string | null
+          resolved_at: string | null
+          resume_automation: boolean | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "human_handoffs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       process_public_message: {
         Args: {
           p_budget_max: number
@@ -1730,6 +2109,42 @@ export type Database = {
           p_service_id: string
           p_stage: string
           p_token_digest: string
+        }
+        Returns: boolean
+      }
+      record_handoff_customer_message: {
+        Args: {
+          p_client_message_id: string
+          p_content: string
+          p_conversation_id: string
+          p_token_digest: string
+        }
+        Returns: boolean
+      }
+      record_public_request_follow_up: {
+        Args: {
+          p_client_message_id: string
+          p_content: string
+          p_conversation_id: string
+          p_token_digest: string
+        }
+        Returns: boolean
+      }
+      record_whatsapp_send_result: {
+        Args: {
+          p_delivery_id: string
+          p_error_code?: string
+          p_organization_id: string
+          p_outcome: string
+          p_provider_message_id?: string
+        }
+        Returns: boolean
+      }
+      release_whatsapp_delivery: {
+        Args: {
+          p_delivery_id: string
+          p_error_code: string
+          p_organization_id: string
         }
         Returns: boolean
       }
@@ -1770,9 +2185,107 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      request_public_handoff: {
+        Args: {
+          p_conversation_id: string
+          p_idempotency_key: string
+          p_priority: string
+          p_reason: string
+          p_reason_code: string
+          p_token_digest: string
+        }
+        Returns: {
+          activated_at: string | null
+          assigned_at: string | null
+          assigned_member_id: string | null
+          cancelled_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          organization_id: string
+          priority: string
+          queued_at: string | null
+          reason: string
+          reason_code: string
+          request_id: string | null
+          requested_at: string
+          resolution: string | null
+          resolved_at: string | null
+          resume_automation: boolean | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "human_handoffs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resolve_handoff: {
+        Args: {
+          p_handoff_id: string
+          p_resolution: string
+          p_resume_automation: boolean
+        }
+        Returns: {
+          activated_at: string | null
+          assigned_at: string | null
+          assigned_member_id: string | null
+          cancelled_at: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          organization_id: string
+          priority: string
+          queued_at: string | null
+          reason: string
+          reason_code: string
+          request_id: string | null
+          requested_at: string
+          resolution: string | null
+          resolved_at: string | null
+          resume_automation: boolean | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "human_handoffs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       restore_whatsapp_conversation_access: {
         Args: { p_conversation_id: string; p_organization_id: string }
         Returns: boolean
+      }
+      send_handoff_message: {
+        Args: {
+          p_client_message_id: string
+          p_content: string
+          p_handoff_id: string
+        }
+        Returns: {
+          client_message_id: string | null
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          organization_id: string
+          reply_to_message_id: string | null
+          sender_member_id: string | null
+          sender_type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       transition_request_status: {
         Args: {
@@ -1820,6 +2333,23 @@ export type Database = {
           p_status: string
         }
         Returns: boolean
+      }
+      verify_status_challenge: {
+        Args: {
+          p_challenge_id: string
+          p_code_digest: string
+          p_conversation_id: string
+          p_conversation_token_digest: string
+          p_lockout_seconds: number
+          p_organization_id: string
+          p_token_digest: string
+          p_token_ttl_seconds: number
+          p_trace_id: string
+        }
+        Returns: {
+          success: boolean
+          token_expires_at: string
+        }[]
       }
     }
     Enums: {

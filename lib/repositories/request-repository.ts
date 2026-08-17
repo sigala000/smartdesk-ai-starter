@@ -71,6 +71,11 @@ export interface RequestRepository {
   ): Promise<
     RepositoryResult<{ id: string; status: string; updatedAt: string }>
   >;
+  approveQuotation(
+    scope: EmployeeRequestScope,
+    requestId: string,
+    attachmentId: string,
+  ): Promise<RepositoryResult<{ id: string; approvedAt: string }>>;
 }
 
 export type DatabaseClient = SupabaseClient<Database>;

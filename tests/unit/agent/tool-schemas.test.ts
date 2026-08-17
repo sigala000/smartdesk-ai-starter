@@ -20,6 +20,8 @@ describe("agent tool boundary", () => {
     ]);
     expect(agentTools.every((tool) => tool.strict === true)).toBe(true);
     expect(executableAgentTools.map((tool) => tool.name).sort()).toEqual([
+      "get_request_status",
+      "request_human_support",
       "save_conversation_fields",
       "search_company_information",
     ]);
@@ -60,5 +62,29 @@ describe("agent tool boundary", () => {
         "I want a human",
       ),
     ).resolves.toMatchObject({ errorCode: "capability_unavailable" });
+  });
+
+  it("passes verified status through the dedicated service callback", async () => {
+    const getRequestStatus = async () => ({
+      success: true,
+      verified: true,
+      referenceNumber: "BP-2026-000001",
+      displayStatus: "Received",
+    });
+    const executor = new ToolExecutor({
+      searchCompanyInformation: async () => ({ found: false }),
+      saveConversationFields: async () => ({ success: false }),
+      getRequestStatus,
+    });
+    await expect(
+      executor.execute(
+        {} as TrustedAgentContext,
+        "get_request_status",
+        JSON.stringify({
+          referenceNumber: "BP-2026-000001",
+        }),
+        "check status",
+      ),
+    ).resolves.toMatchObject({ verified: true, displayStatus: "Received" });
   });
 });

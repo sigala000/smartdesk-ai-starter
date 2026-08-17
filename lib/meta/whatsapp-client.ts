@@ -17,6 +17,7 @@ export type MetaSendResult =
         | "meta_timeout"
         | "meta_authentication"
         | "meta_rate_limited"
+        | "meta_server_error"
         | "meta_rejected";
     }>;
 
@@ -61,6 +62,8 @@ export class MetaWhatsAppClient {
           return { ok: false, code: "meta_authentication" };
         if (response.status === 429)
           return { ok: false, code: "meta_rate_limited" };
+        if (response.status >= 500)
+          return { ok: false, code: "meta_server_error" };
         return { ok: false, code: "meta_rejected" };
       }
       const parsed = responseSchema.safeParse(await response.json());

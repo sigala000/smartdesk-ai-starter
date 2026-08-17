@@ -7,6 +7,7 @@ import {
   requireSupabasePublicConfig,
   requireOpenAIConfig,
   requireWhatsAppConfig,
+  requireStatusVerificationConfig,
 } from "@/lib/config/env-schema";
 
 describe("environment validation", () => {
@@ -144,5 +145,19 @@ describe("environment validation", () => {
         }),
       ),
     ).toMatchObject({ model: "gpt-5.6-sol", maxToolCalls: 3 });
+  });
+
+  it("fails closed when the status mock is enabled in production", () => {
+    const environment = parseServerEnvironment({
+      STATUS_VERIFICATION_ENABLED: "true",
+      STATUS_VERIFICATION_PROVIDER: "mock",
+      PUBLIC_RATE_LIMIT_SECRET: "s".repeat(32),
+    });
+    expect(() =>
+      requireStatusVerificationConfig(environment, "production"),
+    ).toThrow(EnvironmentValidationError);
+    expect(
+      requireStatusVerificationConfig(environment, "development"),
+    ).toMatchObject({ provider: "mock", maxAttempts: 5 });
   });
 });

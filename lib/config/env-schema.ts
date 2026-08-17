@@ -42,6 +42,7 @@ const serverEnvironmentSchema = publicEnvironmentSchema.extend({
   OPENAI_MAX_TOOL_CALLS: optionalInteger(1, 8),
   OPENAI_HISTORY_MESSAGE_LIMIT: optionalInteger(2, 50),
   OPENAI_INPUT_CHARACTER_BUDGET: optionalInteger(2000, 50_000),
+  OPENAI_MAX_TOKENS_PER_TURN: optionalInteger(128, 50_000),
   APP_BASE_URL: optionalUrl,
   PUBLIC_RATE_LIMIT_SECRET: optionalString,
   PUBLIC_CLIENT_IP_HEADER: z.enum(["cf-connecting-ip", "x-real-ip"]).optional(),
@@ -57,6 +58,13 @@ const serverEnvironmentSchema = publicEnvironmentSchema.extend({
   META_WHATSAPP_TEST_RECIPIENT: optionalString,
   META_WHATSAPP_REQUEST_TIMEOUT_MS: optionalInteger(1000, 30_000),
   META_WHATSAPP_MAX_WEBHOOK_BYTES: optionalInteger(1024, 1_048_576),
+  STATUS_VERIFICATION_ENABLED: optionalBoolean,
+  STATUS_VERIFICATION_PROVIDER: z.enum(["mock", "production"]).optional(),
+  STATUS_VERIFICATION_MOCK_EXPOSE_CODE: optionalBoolean,
+  STATUS_VERIFICATION_CODE_TTL_SECONDS: optionalInteger(60, 3600),
+  STATUS_VERIFICATION_TOKEN_TTL_SECONDS: optionalInteger(60, 3600),
+  STATUS_VERIFICATION_MAX_ATTEMPTS: optionalInteger(1, 10),
+  STATUS_VERIFICATION_LOCKOUT_SECONDS: optionalInteger(60, 86400),
 });
 
 export type PublicEnvironment = z.output<typeof publicEnvironmentSchema>;
@@ -143,6 +151,40 @@ export function requireOpenAIConfig(environment: ServerEnvironment) {
     maxToolCalls: environment.OPENAI_MAX_TOOL_CALLS ?? 4,
     historyMessages: environment.OPENAI_HISTORY_MESSAGE_LIMIT ?? 16,
     inputCharacters: environment.OPENAI_INPUT_CHARACTER_BUDGET ?? 12_000,
+    maxTokensPerTurn: environment.OPENAI_MAX_TOKENS_PER_TURN ?? 8_000,
+  };
+}
+
+export function requireStatusVerificationConfig(
+  environment: ServerEnvironment,
+  nodeEnvironment = process.env.NODE_ENV,
+) {
+  if (!environment.STATUS_VERIFICATION_ENABLED) return null;
+  const provider = environment.STATUS_VERIFICATION_PROVIDER;
+  if (!provider)
+    throw new EnvironmentValidationError(["STATUS_VERIFICATION_PROVIDER"]);
+  if (
+    nodeEnvironment === "production" &&
+    (provider === "mock" || environment.STATUS_VERIFICATION_MOCK_EXPOSE_CODE)
+  )
+    throw new EnvironmentValidationError([
+      provider === "mock"
+        ? "STATUS_VERIFICATION_PROVIDER"
+        : "STATUS_VERIFICATION_MOCK_EXPOSE_CODE",
+    ]);
+  const secret = environment.PUBLIC_RATE_LIMIT_SECRET;
+  if (!secret || secret.length < 32)
+    throw new EnvironmentValidationError(["PUBLIC_RATE_LIMIT_SECRET"]);
+  return {
+    provider,
+    exposeMockCode:
+      provider === "mock" &&
+      environment.STATUS_VERIFICATION_MOCK_EXPOSE_CODE === true,
+    secret,
+    codeTtlSeconds: environment.STATUS_VERIFICATION_CODE_TTL_SECONDS ?? 600,
+    tokenTtlSeconds: environment.STATUS_VERIFICATION_TOKEN_TTL_SECONDS ?? 900,
+    maxAttempts: environment.STATUS_VERIFICATION_MAX_ATTEMPTS ?? 5,
+    lockoutSeconds: environment.STATUS_VERIFICATION_LOCKOUT_SECONDS ?? 900,
   };
 }
 

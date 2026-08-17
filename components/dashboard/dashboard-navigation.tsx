@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { navigationForRole } from "@/lib/auth/permissions";
 import type { EmployeeRole } from "@/lib/auth/roles";
@@ -6,10 +9,27 @@ import type { EmployeeRole } from "@/lib/auth/roles";
 type DashboardNavigationProps = Readonly<{ role: EmployeeRole }>;
 
 export function DashboardNavigation({ role }: DashboardNavigationProps) {
+  const pathname = usePathname();
   return (
     <nav aria-label="Employee dashboard" className="dashboard-nav">
       {navigationForRole(role).map((item) => (
-        <Link href={item.href} key={item.href}>
+        <Link
+          aria-current={
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`))
+              ? "page"
+              : undefined
+          }
+          className={
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`))
+              ? "active"
+              : undefined
+          }
+          href={item.href}
+          key={item.href}
+        >
+          <span className="nav-dot" aria-hidden="true" />
           {item.label}
         </Link>
       ))}

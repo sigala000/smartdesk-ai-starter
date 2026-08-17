@@ -12,6 +12,15 @@ export type ToolServices = Readonly<{
     input: unknown,
     customerMessage: string,
   ) => Promise<unknown>;
+  requestHumanSupport?: (
+    context: TrustedAgentContext,
+    input: unknown,
+    customerMessage: string,
+  ) => Promise<unknown>;
+  getRequestStatus?: (
+    context: TrustedAgentContext,
+    input: unknown,
+  ) => Promise<unknown>;
 }>;
 
 const unavailable = { success: false, errorCode: "capability_unavailable" };
@@ -48,6 +57,18 @@ export class ToolExecutor {
         input.data,
         customerMessage,
       );
+    if (name === "request_human_support")
+      return this.services.requestHumanSupport
+        ? this.services.requestHumanSupport(
+            context,
+            input.data,
+            customerMessage,
+          )
+        : unavailable;
+    if (name === "get_request_status")
+      return this.services.getRequestStatus
+        ? this.services.getRequestStatus(context, input.data)
+        : unavailable;
     return unavailable;
   }
 }

@@ -44,6 +44,7 @@ export default async function RequestPage({ params }: PageProps) {
         request={result.value}
         role={role}
         canAssign={can(role, "requests:assign")}
+        canApproveQuotation={can(role, "quotations:approve")}
         canTransition={can(role, "requests:status:update")}
         canAddNote={can(role, "requests:notes:create")}
         canRequestInformation={can(role, "requests:request_information")}

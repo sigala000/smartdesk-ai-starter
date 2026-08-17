@@ -44,6 +44,9 @@ function mapRpcError(message: string): string {
     "responsible_employee_required",
     "quotation_attachment_required",
     "transition_provenance_required",
+    "quotation_approval_forbidden",
+    "quotation_attachment_invalid",
+    "attachment_not_found",
   ];
   return known.find((code) => message.includes(code)) ?? "internal_error";
 }
@@ -252,7 +255,9 @@ export class SupabaseRequestRepository implements RequestRepository {
         : Promise.resolve({ data: [], error: null }),
       this.client
         .from("attachments")
-        .select("id,original_filename,mime_type,size_bytes,created_at")
+        .select(
+          "id,original_filename,mime_type,size_bytes,created_at,document_kind,approved_at",
+        )
         .eq("organization_id", scope.organizationId)
         .eq("request_id", requestId)
         .eq("upload_status", "active")
@@ -340,6 +345,8 @@ export class SupabaseRequestRepository implements RequestRepository {
             item.mime_type as EmployeeRequestDetail["attachments"][number]["mimeType"],
           sizeBytes: item.size_bytes,
           createdAt: item.created_at,
+          documentKind: item.document_kind as "general" | "quotation",
+          approvedAt: item.approved_at,
         })),
         messages: (messages.data ?? []).flatMap((item) =>
           item.sender_type === "customer" ||
@@ -423,6 +430,22 @@ export class SupabaseRequestRepository implements RequestRepository {
     return {
       ok: true,
       value: { id: result.data.id, createdAt: result.data.created_at },
+    };
+  }
+
+  async approveQuotation(
+    _scope: EmployeeRequestScope,
+    requestId: string,
+    attachmentId: string,
+  ) {
+    const result = await this.client.rpc("approve_quotation_attachment", {
+      p_request_id: requestId,
+      p_attachment_id: attachmentId,
+    });
+    if (result.error) return failure(mapRpcError(result.error.message));
+    return {
+      ok: true as const,
+      value: { id: result.data.id, approvedAt: result.data.approved_at! },
     };
   }
 

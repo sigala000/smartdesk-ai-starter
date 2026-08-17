@@ -104,6 +104,40 @@ export class SupabasePublicConversationRepository implements PublicConversationR
     return result.error === null && result.data === true;
   }
 
+  async recordHandoffCustomerMessage(
+    conversationId: string,
+    tokenDigest: string,
+    clientMessageId: string,
+    customerMessage: string,
+  ) {
+    const result = await this.client.rpc("record_handoff_customer_message", {
+      p_conversation_id: conversationId,
+      p_token_digest: tokenDigest,
+      p_client_message_id: clientMessageId,
+      p_content: customerMessage,
+    });
+    if (result.error) return fail(safeRpcCode(result.error.message));
+    if (result.data !== true) return { ok: true as const, value: null };
+    return this.view(conversationId, tokenDigest);
+  }
+
+  async recordRequestFollowUp(
+    conversationId: string,
+    tokenDigest: string,
+    clientMessageId: string,
+    customerMessage: string,
+  ) {
+    const result = await this.client.rpc("record_public_request_follow_up", {
+      p_conversation_id: conversationId,
+      p_token_digest: tokenDigest,
+      p_client_message_id: clientMessageId,
+      p_content: customerMessage,
+    });
+    if (result.error) return fail(safeRpcCode(result.error.message));
+    if (result.data !== true) return { ok: true as const, value: null };
+    return this.view(conversationId, tokenDigest);
+  }
+
   async create(organizationSlug: string, tokenDigest: string) {
     const result = await this.client.rpc("create_public_conversation", {
       p_organization_slug: organizationSlug,
@@ -141,7 +175,7 @@ export class SupabasePublicConversationRepository implements PublicConversationR
   ): Promise<PublicRepositoryResult<PublicConversationView>> {
     const organizationId = await this.authorized(conversationId, tokenDigest);
     if (!organizationId) return fail("conversation_not_found");
-    const [conversation, organization, draft, services, messages] =
+    const [conversation, organization, draft, services, messages, handoff] =
       await Promise.all([
         this.client
           .from("conversations")
@@ -175,13 +209,21 @@ export class SupabasePublicConversationRepository implements PublicConversationR
           .in("sender_type", ["customer", "assistant", "employee"])
           .order("created_at")
           .limit(100),
+        this.client
+          .from("human_handoffs")
+          .select("status")
+          .eq("organization_id", organizationId)
+          .eq("conversation_id", conversationId)
+          .in("status", ["queued", "assigned", "active"])
+          .maybeSingle(),
       ]);
     if (
       conversation.error ||
       organization.error ||
       draft.error ||
       services.error ||
-      messages.error
+      messages.error ||
+      handoff.error
     )
       return fail("internal_error");
     if (!conversation.data || !organization.data || !draft.data)
@@ -197,6 +239,12 @@ export class SupabasePublicConversationRepository implements PublicConversationR
         id: conversation.data.id,
         organizationName: organization.data.name,
         state: conversation.data.state,
+        handoffStatus:
+          handoff.data?.status === "queued" ||
+          handoff.data?.status === "assigned" ||
+          handoff.data?.status === "active"
+            ? handoff.data.status
+            : null,
         draft: publicDraft,
         prompt: promptForStage(publicDraft.stage),
         services: services.data,

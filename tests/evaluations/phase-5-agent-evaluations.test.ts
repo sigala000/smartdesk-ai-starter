@@ -75,6 +75,7 @@ describe("Phase 5 AI behavior evaluations", () => {
         inputCharacters: 5000,
         maxToolCalls: 2,
         timeoutMs: 1000,
+        maxTokensPerTurn: 8000,
       }).run(context, fixture.input);
 
       if (

@@ -24,6 +24,7 @@ export type AgentLimits = Readonly<{
   inputCharacters: number;
   maxToolCalls: number;
   timeoutMs: number;
+  maxTokensPerTurn: number;
 }>;
 
 export class AgentOrchestrator {
@@ -104,6 +105,11 @@ export class AgentOrchestrator {
         });
         inputTokens += response.usage?.inputTokens ?? 0;
         outputTokens += response.usage?.outputTokens ?? 0;
+        if (inputTokens + outputTokens > this.limits.maxTokensPerTurn)
+          return finish(
+            { text: fallback, fallback: true, toolNames },
+            "token_limit",
+          );
         if (response.toolCalls.length === 0) {
           const safe = validateCustomerSafeOutput(response.text, {
             executions,
@@ -144,6 +150,26 @@ export class AgentOrchestrator {
             customerMessage,
           );
           executions.push({ name: call.name, result });
+          if (
+            call.name === "request_human_support" &&
+            typeof result === "object" &&
+            result !== null &&
+            "success" in result &&
+            result.success === true &&
+            "status" in result
+          ) {
+            const status = (result as { status?: unknown }).status;
+            const text =
+              status === "active"
+                ? "A BuildPro employee has joined this conversation."
+                : status === "assigned"
+                  ? "Your conversation has been assigned. No employee has joined yet."
+                  : "Human support has been requested. No employee has joined yet.";
+            return finish(
+              { text, fallback: true, toolNames },
+              "server_owned_handoff_acknowledgement",
+            );
+          }
           outputs.push({
             type: "function_call_output",
             call_id: call.callId,

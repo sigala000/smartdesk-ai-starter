@@ -25,6 +25,7 @@ function repository(status: EmployeeRequestDetail["status"] = "new") {
     assign: vi.fn(),
     addNote: vi.fn(),
     requestInformation: vi.fn(),
+    approveQuotation: vi.fn(),
     findDetail: vi.fn().mockResolvedValue({ ok: true, value: detail }),
     transition: vi.fn().mockResolvedValue({
       ok: true,
@@ -74,7 +75,7 @@ describe("request service", () => {
     expect(adapter.transition).not.toHaveBeenCalled();
   });
 
-  it("rejects evidence-dependent transitions before repository mutation", async () => {
+  it("allows evidence-dependent transitions for managers and delegates prerequisites to the database", async () => {
     const adapter = repository("awaiting_assessment");
     const result = await new RequestService(adapter).transition(
       access,
@@ -85,8 +86,8 @@ describe("request service", () => {
         expectedUpdatedAt: "2026-08-07T10:00:00Z",
       },
     );
-    expect(result.ok).toBe(false);
-    expect(adapter.transition).not.toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+    expect(adapter.transition).toHaveBeenCalledOnce();
   });
 
   it("denies viewer access without calling the repository", async () => {

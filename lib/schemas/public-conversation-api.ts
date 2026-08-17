@@ -11,7 +11,7 @@ export const createConversationSchema = z
       .string()
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .max(100),
-    locale: z.enum(["en"]).default("en"),
+    locale: z.enum(["en", "fr"]).default("en"),
   })
   .strict();
 

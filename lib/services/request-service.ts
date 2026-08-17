@@ -60,6 +60,7 @@ function mapRepositoryError(code: string): RequestServiceError {
       "responsible_employee_required",
       "quotation_attachment_required",
       "transition_provenance_required",
+      "quotation_attachment_invalid",
     ].includes(code)
   ) {
     const messages: Record<string, string> = {
@@ -79,6 +80,8 @@ function mapRepositoryError(code: string): RequestServiceError {
         "An approved PDF quotation must be attached before marking it sent.",
       transition_provenance_required:
         "Record the required customer or authorization evidence in the reason.",
+      quotation_attachment_invalid:
+        "Only an active validated PDF can be approved as a quotation.",
     };
     return {
       code: "conflict",
@@ -226,6 +229,22 @@ export class RequestService {
       scopeFromAccess(access),
       requestId,
       input,
+    );
+    return result.ok
+      ? success(result.value)
+      : failure(mapRepositoryError(result.code));
+  }
+
+  async approveQuotation(
+    access: EmployeeAccessContext,
+    requestId: string,
+    attachmentId: string,
+  ) {
+    if (!this.allowed(access, "quotations:approve")) return failure(denied());
+    const result = await this.repository.approveQuotation(
+      scopeFromAccess(access),
+      requestId,
+      attachmentId,
     );
     return result.ok
       ? success(result.value)

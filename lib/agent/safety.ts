@@ -10,6 +10,9 @@ const injectionPatterns = [
   /(?:another|other).{0,30}(?:customer|organization|tenant|client)/i,
   /(?:pretend|act as|roleplay).{0,50}(?:administrator|developer|system|employee)/i,
   /(?:bypass|disable|remove).{0,40}(?:verification|confirmation|authorization|safety)/i,
+  /(?:ignore|oublie|contourne|désactive).{0,50}(?:instructions|règles|confirmation|autorisation)/i,
+  /(?:montre|révèle|affiche).{0,80}(?:invite système|instructions cachées|secret|clé api|note interne)/i,
+  /(?:autre).{0,30}(?:client|organisation|locataire)/i,
 ];
 const unconditionalForbiddenClaims = [
   /(?:guarantee|promise)\b/i,
@@ -20,6 +23,8 @@ const priceClaim =
   /(?:\b(?:price|cost|quote|quotation|discount|estimate)\b.{0,50}(?:\d|one|two|three|four|five|six|seven|eight|nine|hundred|thousand|million)|(?:\d[\d,. ]*|one|two|three|four|five|six|seven|eight|nine|hundred|thousand|million).{0,30}\b(?:xaf|fcfa|cfa|usd|eur|dollars?|euros?)\b)/i;
 const actionClaim =
   /(?:request|handoff|file|attachment|quotation).{0,40}(?:submitted|created|queued|attached|assigned|approved|prepared|sent)|(?:employee|human|officer|team member).{0,40}(?:joined|assigned|handling|on the way)/i;
+const activeHumanClaim =
+  /(?:employee|human|officer|team member|representative).{0,50}(?:joined|connected|transferred|took over|handling|is (?:now )?(?:here|active|present|with you)|speaking|chatting)|(?:connected|transferred).{0,30}(?:employee|human|officer|team member|representative)/i;
 const companyClaim =
   /(?:\b(?:buildpro|company|we)\b.{0,50}\b(?:offers?|provides?|installs?|supports?|available|specializes?)\b|\b(?:offers?|provides?|installs?|supports?|available service|(?:is|are) available)\b)/i;
 const referencePattern = /\b[A-Z0-9]{2,10}[- ]?\d{2,4}[- ]?\d{3,8}\b/g;
@@ -77,6 +82,14 @@ export function validateCustomerSafeOutput(
   const status = successfulResult(executions, "get_request_status");
   if (actionClaim.test(normalized) && !creation && !handoff && !attachment)
     return null;
+  if (
+    activeHumanClaim.test(normalized) &&
+    (!handoff ||
+      typeof handoff !== "object" ||
+      !("status" in handoff) ||
+      (handoff as { status?: unknown }).status !== "active")
+  )
+    return null;
 
   const references = normalized.match(referencePattern) ?? [];
   if (references.length > 0) {
@@ -105,7 +118,7 @@ export function deterministicSafetyResponse(message: string) {
   if (/\b(?:unsafe|danger|collapse|fire|injur|threat)\w*/i.test(message))
     return "This may involve an immediate safety concern. Please avoid the unsafe area and contact an appropriate local emergency service if anyone is at risk. I can also help you contact a BuildPro employee.";
   if (/\b(?:human|person|employee|agent)\b/i.test(message))
-    return "I can help record your request, but human-support queuing is not available in this chat yet. Please contact BuildPro directly.";
+    return "I can help request human support. I will only say an employee has joined after the system confirms acceptance.";
   if (/\b(?:price|cost|discount|how much)\b/i.test(message))
     return "I can’t calculate or promise a price. BuildPro must assess the request before an authorized employee prepares a quotation.";
   return null;

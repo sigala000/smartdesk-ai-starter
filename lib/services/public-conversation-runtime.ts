@@ -9,12 +9,18 @@ import { OpenAIResponsesClient } from "@/lib/openai/responses-client";
 import { AgentOrchestrator } from "@/lib/agent/orchestrator";
 import { ToolExecutor } from "@/lib/agent/tool-executor";
 import { saveConversationFieldsSchema } from "@/lib/agent/tool-schemas";
+import { requestHumanSupportSchema } from "@/lib/agent/tool-schemas";
 import { serverAgentObserver } from "@/lib/agent/observability";
+import { SupabaseHandoffRepository } from "@/lib/repositories/supabase-handoff-repository";
+import { HandoffService } from "@/lib/services/handoff-service";
+import { classifyEscalation } from "@/lib/domain/handoffs";
+import { getRequestStatusSchema } from "@/lib/agent/tool-schemas";
+import { createRequestStatusRuntime } from "@/lib/services/request-status-runtime";
 
 export function createPublicConversationRuntime() {
-  const repository = new SupabasePublicConversationRepository(
-    createAdminClient(),
-  );
+  const admin = createAdminClient();
+  const repository = new SupabasePublicConversationRepository(admin);
+  const handoffs = new HandoffService(new SupabaseHandoffRepository(admin));
   const openAI = requireOpenAIConfig(serverEnvironment);
   const serviceHolder: { current?: PublicConversationService } = {};
   const executor = new ToolExecutor({
@@ -59,6 +65,54 @@ export function createPublicConversationRuntime() {
           })
         : { success: false, errorCode: "invalid_tool_arguments" };
     },
+    async requestHumanSupport(context, input, customerMessage) {
+      const parsed = requestHumanSupportSchema.safeParse(input);
+      if (!parsed.success)
+        return { success: false, errorCode: "invalid_tool_arguments" };
+      const detected = classifyEscalation(customerMessage);
+      const result = await handoffs.requestPublic(
+        context.conversationId,
+        context.tokenDigest,
+        crypto.randomUUID(),
+        {
+          priority: detected?.priority ?? "normal",
+          reason:
+            detected?.reason ??
+            "The virtual assistant could not safely complete the customer request.",
+          reasonCode: detected?.reasonCode ?? "unsupported_information",
+        },
+      );
+      return result.ok
+        ? {
+            success: true,
+            handoffId: result.value.id,
+            status: result.value.status,
+          }
+        : { success: false, errorCode: result.code };
+    },
+    async getRequestStatus(context, input) {
+      const parsed = getRequestStatusSchema.safeParse(input);
+      if (!parsed.success)
+        return { success: false, errorCode: "invalid_tool_arguments" };
+      try {
+        const result = await createRequestStatusRuntime().statusForConversation(
+          {
+            reference: parsed.data.referenceNumber,
+            organizationId: context.organizationId,
+            conversationId: context.conversationId,
+          },
+        );
+        return result.ok
+          ? { success: true, verified: true, ...result.value }
+          : { success: false, verified: false, errorCode: result.code };
+      } catch {
+        return {
+          success: false,
+          verified: false,
+          errorCode: "service_unavailable",
+        };
+      }
+    },
   });
   const provider = openAI
     ? new OpenAIResponsesClient(
@@ -75,10 +129,15 @@ export function createPublicConversationRuntime() {
       inputCharacters: openAI?.inputCharacters ?? 12_000,
       maxToolCalls: openAI?.maxToolCalls ?? 4,
       timeoutMs: openAI?.timeoutMs ?? 15_000,
+      maxTokensPerTurn: openAI?.maxTokensPerTurn ?? 8_000,
     },
     serverAgentObserver,
   );
-  const service = new PublicConversationService(repository, orchestrator);
+  const service = new PublicConversationService(
+    repository,
+    orchestrator,
+    handoffs,
+  );
   serviceHolder.current = service;
   return service;
 }

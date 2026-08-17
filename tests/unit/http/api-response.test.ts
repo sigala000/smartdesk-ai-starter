@@ -1,8 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { apiAccessError, parseBoundedJson } from "@/lib/http/api-response";
+import {
+  apiAccessError,
+  apiSuccess,
+  parseBoundedJson,
+} from "@/lib/http/api-response";
 
 describe("request API response hardening", () => {
+  it("correlates success and error responses without caching", () => {
+    for (const response of [
+      apiSuccess({ ok: true }),
+      apiAccessError(
+        { ok: false, code: "membership_required", authenticated: true },
+        "Forbidden",
+      ),
+    ]) {
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
+      expect(response.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/);
+    }
+  });
+
   it("distinguishes internal access failures from permission denials", async () => {
     const response = apiAccessError(
       { ok: false, code: "internal_error", authenticated: true },

@@ -132,9 +132,8 @@ const tools: Record<AgentToolName, Record<string, unknown>> = {
       type: "object",
       properties: {
         referenceNumber: { type: "string" },
-        verificationToken: { type: "string" },
       },
-      required: ["referenceNumber", "verificationToken"],
+      required: ["referenceNumber"],
       additionalProperties: false,
     },
   },
@@ -177,4 +176,6 @@ export const agentTools = agentToolNames.map((name) => tools[name]);
 export const executableAgentTools = [
   tools.search_company_information,
   tools.save_conversation_fields,
+  tools.get_request_status,
+  tools.request_human_support,
 ];

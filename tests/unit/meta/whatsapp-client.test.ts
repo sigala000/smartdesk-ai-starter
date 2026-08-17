@@ -48,4 +48,33 @@ describe("Meta WhatsApp client", () => {
       new MetaWhatsAppClient(config, request).sendText("237600000001", "Hello"),
     ).resolves.toEqual({ ok: false, code: "meta_authentication" });
   });
+
+  it("classifies rate limits, server failures, and ambiguous timeouts", async () => {
+    const limited = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 429 }));
+    await expect(
+      new MetaWhatsAppClient(config, limited).sendText("237600000001", "Hello"),
+    ).resolves.toEqual({ ok: false, code: "meta_rate_limited" });
+
+    const unavailable = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 503 }));
+    await expect(
+      new MetaWhatsAppClient(config, unavailable).sendText(
+        "237600000001",
+        "Hello",
+      ),
+    ).resolves.toEqual({ ok: false, code: "meta_server_error" });
+
+    const timedOut = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new Error("network detail"));
+    await expect(
+      new MetaWhatsAppClient(config, timedOut).sendText(
+        "237600000001",
+        "Hello",
+      ),
+    ).resolves.toEqual({ ok: false, code: "meta_timeout" });
+  });
 });

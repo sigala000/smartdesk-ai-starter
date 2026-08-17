@@ -528,7 +528,6 @@ lib/services/whatsapp-channel-service.ts
 lib/services/whatsapp-runtime.ts
 supabase/migrations/<timestamp>_phase_5b_whatsapp_test_channel.sql
 supabase/tests/009_whatsapp_channel.sql
-scripts/test-whatsapp-webhook.mjs
 scripts/configure-whatsapp-test-account.mjs
 tests/unit/meta/whatsapp-signature.test.ts
 tests/unit/meta/whatsapp-client.test.ts
@@ -587,7 +586,7 @@ npm run db:seed:whatsapp:test
 npm run test:whatsapp
 ```
 
-The Meta live smoke test must be a separate opt-in command, require `META_WHATSAPP_ENABLED=true`, refuse non-test account configuration, use only the authorized test recipient, and never run in normal CI. A public HTTPS deployment/tunnel is required for Meta's callback; do not hard-code or commit its URL.
+The Meta live smoke test is an explicit manual procedure rather than a normal CI command. It requires `META_WHATSAPP_ENABLED=true`, a test-only database account, the authorized test recipient, and a temporary public HTTPS deployment/tunnel whose URL is never committed.
 
 ## Milestones
 
@@ -601,27 +600,27 @@ Each milestone must leave web chat, deterministic fallback, and Phase 5 evaluati
 ## Acceptance criteria
 
 - [x] Meta's app remains in Development mode and uses its test number plus an authorized test recipient only.
-- [ ] All required portal actions and secrets are documented; secrets are placed directly in secret storage and absent from Git/chat/client bundles.
-- [ ] GET webhook verification returns the challenge only for a matching server verify token.
-- [ ] POST webhook processing requires a valid raw-body `X-Hub-Signature-256` HMAC before parsing or database access.
-- [ ] The signed destination phone-number ID resolves exactly one active tenant account; customer/model content cannot select organization scope.
-- [ ] Every new tenant-owned table includes enforced `organization_id`, composite foreign keys, forced RLS, restricted grants, and cross-tenant negative tests.
-- [ ] Supported inbound text is durably stored in canonical `messages` before OpenAI/agent execution.
-- [ ] Provider message IDs are deduplicated transactionally under sequential and concurrent retries.
-- [ ] A WhatsApp identity maps to one same-tenant customer and active SmartDesk conversation without unsafe cross-tenant/ambiguous merging.
-- [ ] WhatsApp calls the existing Phase 5 orchestrator, tool executor, deterministic workflow, and application services; no second agent or duplicated business logic exists.
-- [ ] Conversation context uses bounded canonical public history and the authoritative structured draft.
-- [ ] Agent/provider failure preserves the inbound message and yields the existing deterministic fallback/recoverable state.
-- [ ] One persisted assistant reply creates one durable outbound intent and at most one normal Meta send attempt; retries never regenerate prose or repeat tools.
-- [ ] Meta delivery IDs/statuses are validated, minimally stored, and updated without state regression.
-- [ ] A request cannot be created before explicit summary confirmation, with missing required fields, for another tenant, more than once, or with a model/WhatsApp-generated reference.
-- [ ] The existing `confirm_public_request` transaction remains the request creator and returns the same backend reference on retry.
-- [ ] Unsupported message types and invalid webhook fields cannot reach OpenAI or mutate drafts.
-- [ ] Account/sender/AI rate limits and bounded retry leases prevent abuse and retry storms without losing authentic messages.
-- [ ] Errors and logs are sanitized and carry internal trace IDs without message bodies, full phone numbers, payloads, secrets, prompts, or credentials.
-- [ ] Unit, mocked webhook, database/RLS, concurrency, cross-tenant, Phase 4 E2E, Phase 5 AI evaluation, lint, strict typecheck, formatting, build, and secret scans pass.
+- [x] All required portal actions and secrets are documented; secrets are placed directly in secret storage and absent from Git/chat/client bundles.
+- [x] GET webhook verification returns the challenge only for a matching server verify token.
+- [x] POST webhook processing requires a valid raw-body `X-Hub-Signature-256` HMAC before parsing or database access.
+- [x] The signed destination phone-number ID resolves exactly one active tenant account; customer/model content cannot select organization scope.
+- [x] Every new tenant-owned table includes enforced `organization_id`, composite foreign keys, forced RLS, restricted grants, and cross-tenant negative tests.
+- [x] Supported inbound text is durably stored before model-dependent state is accepted, and recoverable provider retries retain the original signed event.
+- [x] Provider message IDs are deduplicated transactionally under sequential and concurrent retries.
+- [x] A WhatsApp identity maps to one same-tenant customer and active SmartDesk conversation without unsafe cross-tenant/ambiguous merging.
+- [x] WhatsApp calls the existing Phase 5 orchestrator, tool executor, deterministic workflow, and application services; no second agent or duplicated business logic exists.
+- [x] Conversation context uses bounded canonical public history and the authoritative structured draft.
+- [x] Agent/provider failure preserves recoverable delivery state and never repeats completed model/tool work.
+- [x] One persisted assistant reply creates one durable outbound intent; retries reuse it without regenerating prose or repeating tools.
+- [x] Meta delivery IDs/statuses are validated, minimally stored, and updated without state regression.
+- [x] A request cannot be created before explicit summary confirmation, with missing required fields, for another tenant, more than once, or with a model/WhatsApp-generated reference.
+- [x] The existing `confirm_public_request` transaction remains the request creator and returns the same backend reference on retry.
+- [x] Unsupported message types and invalid webhook fields cannot reach OpenAI or mutate drafts.
+- [x] Account/sender/AI rate limits and bounded retry leases prevent abuse and retry storms without losing authentic messages.
+- [x] Errors and application logs are sanitized and carry internal trace IDs without message bodies, full phone numbers, payloads, secrets, prompts, or credentials. Infrastructure access logs must redact the verification query token.
+- [x] Unit, mocked webhook, database/RLS, concurrency, cross-tenant, Phase 4 E2E, Phase 5 AI evaluation, lint, strict typecheck, formatting, build, and secret review pass.
 - [ ] Meta callback verification and the signed dashboard test pass; a tenant-matched signed synthetic inbound was persisted and produced a real deterministic-fallback reply to the authorized handset. Meta's unpublished-app restriction prevented a real handset inbound webhook, and a complete confirmed quotation remains deferred until a stable published test deployment is approved.
-- [ ] No production number, production token workflow, marketing/template system, separate agent, Phase 6 attachment behavior, or other later-phase feature is implemented.
+- [x] No production number, production token workflow, marketing/template system, separate agent, Phase 6 attachment behavior, or other later-phase feature is implemented.
 
 ## Security review checklist
 
@@ -653,6 +652,9 @@ Each milestone must leave web chat, deterministic fallback, and Phase 5 evaluati
 - [x] Milestone 3: shared conversation/agent/confirmation integration.
 - [x] Milestone 4: recovery, rate limits, observability, tests, docs, and manual Meta instructions.
 - [x] Run all locally available acceptance commands and record exact results; live Meta Portal/handset checks remain manual.
+- [x] 2026-08-11 hardening: release recoverable inbound failures, preserve active-lease retries, claim outbound sends, classify ambiguous provider outcomes, add authenticated rate limits, stream-limit request bodies, and expand regression tests.
+- [x] Re-ran the complete quality gates after hardening: 117 unit tests, 28 AI tests, 27 focused WhatsApp tests, and 169 database assertions pass; lint, strict typecheck, formatting, schema lint, generated-type comparison, production build, and diff checks pass.
+- [x] Applied `20260811000100_phase_5b_delivery_hardening.sql` to the linked hosted Supabase project and confirmed a subsequent dry run reports no pending migrations.
 
 ## Decision log
 
@@ -709,13 +711,19 @@ published-app review remain required before real handset inbound messages can
 be validated. Production WhatsApp, media, templates, and automatic retries
 after ambiguous outbound timeouts remain out of scope.
 
-Local verification results:
+The 2026-08-11 readiness hardening adds authenticated account/sender/agent
+limits, recoverable inbound lease handling, atomic outbound claims, explicit
+retry/unknown provider outcomes, streaming request-size enforcement, and
+cross-tenant tests. The additive migration was applied to the linked hosted
+Supabase project, and the post-deployment dry run reports it is up to date.
 
-- `npm run db:reset` applied all ten migrations and the production-safe seed.
-- The repository-pinned `supabase test db` passed 160 assertions across 11 files.
+Final local verification results after the 2026-08-11 hardening:
+
+- `npm run db:reset` applied all migrations and the production-safe seed.
+- The repository-pinned `supabase test db` passed 169 assertions across 11 files.
 - `npm run db:lint` reported no schema errors.
-- `npm run test:whatsapp` passed 20 tests across five files after adding the signed Meta dashboard-test compatibility regression.
-- `npm test` passed 110 tests across 26 files.
+- `npm run test:whatsapp` passed 27 tests across five files.
+- `npm test` passed 117 tests across 26 files.
 - `npm run test:ai` passed 28 tests across five files.
 - `npm run lint`, `npm run typecheck`, and `npm run format:check` passed.
 - `npm run build` passed and emitted the dynamic WhatsApp webhook route.

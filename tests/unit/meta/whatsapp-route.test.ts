@@ -131,4 +131,42 @@ describe("WhatsApp webhook route", () => {
       expect.any(String),
     );
   });
+
+  it("stops reading an oversized streamed body before service processing", async () => {
+    const { createWhatsAppWebhookHandlers } = await route();
+    const handle = vi.fn();
+    let pulls = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        controller.enqueue(new Uint8Array(8));
+        if (pulls === 3) controller.close();
+      },
+    });
+    const handlers = createWhatsAppWebhookHandlers(
+      () =>
+        ({
+          config: {
+            verifyToken: environment.META_WHATSAPP_VERIFY_TOKEN,
+            appSecret: environment.META_APP_SECRET,
+            maxWebhookBytes: 10,
+          },
+          service: { handle },
+        }) as unknown as NonNullable<
+          ReturnType<
+            typeof import("@/lib/services/whatsapp-runtime").createWhatsAppRuntime
+          >
+        >,
+    );
+    const response = await handlers.POST(
+      new Request("https://example.test/api/webhooks/whatsapp", {
+        method: "POST",
+        body,
+        duplex: "half",
+      } as RequestInit & { duplex: "half" }),
+    );
+    expect(response.status).toBe(413);
+    expect(handle).not.toHaveBeenCalled();
+    expect(pulls).toBeLessThanOrEqual(2);
+  });
 });

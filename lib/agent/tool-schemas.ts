@@ -77,7 +77,6 @@ export const createCustomerRequestSchema = z
 export const getRequestStatusSchema = z
   .object({
     referenceNumber: z.string().regex(/^[A-Z0-9]{2,10}-\d{4}-\d{6}$/),
-    verificationToken: z.string().min(20).max(500),
   })
   .strict();
 export const requestHumanSupportSchema = z

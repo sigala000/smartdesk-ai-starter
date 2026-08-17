@@ -69,6 +69,8 @@ export type EmployeeRequestDetail = RequestListItem &
       mimeType: AttachmentMimeType;
       sizeBytes: number;
       createdAt: string;
+      documentKind: "general" | "quotation";
+      approvedAt: string | null;
     }>[];
     statusHistory: readonly RequestStatusHistoryItem[];
     assignmentHistory: readonly AssignmentHistoryItem[];

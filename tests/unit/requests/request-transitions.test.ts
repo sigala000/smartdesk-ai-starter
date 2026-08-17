@@ -50,7 +50,7 @@ describe("request transitions", () => {
         "in_progress",
         "awaiting_client_validation",
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(canRoleTransition("viewer", "new", "awaiting_assessment")).toBe(
       false,
     );
@@ -61,7 +61,7 @@ describe("request transitions", () => {
         "assessment_completed",
         "quotation",
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canRoleTransition(
         "project_manager",
@@ -69,7 +69,7 @@ describe("request transitions", () => {
         "in_progress",
         "quotation",
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canRoleTransition(
         "support_officer",
@@ -88,7 +88,7 @@ describe("request transitions", () => {
     ).toBe(true);
   });
 
-  it("fails closed for transitions whose evidence model is not in Phase 3", () => {
+  it("allows evidence-gated lifecycle transitions to reach database guards", () => {
     expect(
       canRoleTransition(
         "manager",
@@ -96,7 +96,7 @@ describe("request transitions", () => {
         "site_visit_proposed",
         "quotation",
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canRoleTransition(
         "manager",
@@ -104,7 +104,7 @@ describe("request transitions", () => {
         "quotation_accepted",
         "quotation",
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       canRoleTransition(
         "admin",
@@ -112,6 +112,6 @@ describe("request transitions", () => {
         "completed",
         "quotation",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 });

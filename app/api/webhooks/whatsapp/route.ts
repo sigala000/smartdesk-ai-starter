@@ -20,6 +20,30 @@ const plain = (body: string, status: number) =>
 
 type WhatsAppRuntime = NonNullable<ReturnType<typeof createWhatsAppRuntime>>;
 
+async function readLimitedBody(request: Request, maximumBytes: number) {
+  if (!request.body) return new Uint8Array();
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const next = await reader.read();
+    if (next.done) break;
+    size += next.value.byteLength;
+    if (size > maximumBytes) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(next.value);
+  }
+  const body = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
+
 export function createWhatsAppWebhookHandlers(
   runtimeFactory: () => WhatsAppRuntime | null = createWhatsAppRuntime,
 ) {
@@ -47,12 +71,17 @@ export function createWhatsAppWebhookHandlers(
     const traceId = randomUUID();
     const runtime = runtimeFactory();
     if (!runtime) return plain("Unavailable", 503);
-    const declared = Number(request.headers.get("content-length") ?? 0);
-    if (declared > runtime.config.maxWebhookBytes)
+    const contentLength = request.headers.get("content-length");
+    const declared = contentLength === null ? null : Number(contentLength);
+    if (
+      declared !== null &&
+      (!Number.isSafeInteger(declared) ||
+        declared < 0 ||
+        declared > runtime.config.maxWebhookBytes)
+    )
       return plain("Payload too large", 413);
-    const body = new Uint8Array(await request.arrayBuffer());
-    if (body.byteLength > runtime.config.maxWebhookBytes)
-      return plain("Payload too large", 413);
+    const body = await readLimitedBody(request, runtime.config.maxWebhookBytes);
+    if (!body) return plain("Payload too large", 413);
     if (
       !verifyWhatsAppSignature(
         body,

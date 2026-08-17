@@ -44,6 +44,15 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: AI evaluations
+        run: npm run test:ai
+
+      - name: Secret scan
+        run: npm run security:secrets
+
+      - name: Dependency audit
+        run: npm run security:dependencies
+
       - name: Build
         run: npm run build
 
@@ -86,6 +95,16 @@ jobs:
         env:
           SUPABASE_TELEMETRY_DISABLED: "true"
         run: npm run db:test
+
+      - name: Install Chromium for browser acceptance
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser accessibility and mobile smoke tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+          PUBLIC_RATE_LIMIT_SECRET: ci-browser-only-rate-limit-secret-32-bytes
+        run: npm run test:e2e
 
       - name: Verify generated database types
         env:

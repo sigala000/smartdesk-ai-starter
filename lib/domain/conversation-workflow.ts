@@ -91,7 +91,7 @@ export function applyAction(action: PublicAction): WorkflowUpdate {
     return {
       values: { intent: action, stage: "choose_action" },
       reply:
-        "Status lookup requires identity verification and is not available in this chat yet. A reference alone never reveals request information.",
+        "For your privacy, verify your confirmed contact number on the secure request status page. A reference alone never reveals request information.",
     };
   return {
     values: { intent: action, stage: "choose_action" },

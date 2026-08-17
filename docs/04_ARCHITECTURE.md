@@ -220,7 +220,10 @@ are verified over raw bytes before a trusted destination phone-number mapping
 selects the tenant. Durable provider delivery rows deduplicate and claim each
 turn, while the existing `PublicConversationService`, Phase 5 orchestrator,
 stored draft, and confirmation transaction remain the only conversation and
-request workflow.
+request workflow. Processing leases keep provider retries active until failed
+work can be reclaimed. Outbound replies are claimed before sending; explicit
+Meta rate limits retry the persisted reply, while ambiguous timeouts and server
+errors enter a non-retriable review state to prevent duplicate customer sends.
 
 ### Integration layer
 
@@ -322,6 +325,24 @@ Record:
 
 Do not log full sensitive conversation content by default.
 
+## Phase 7 human ownership boundary
+
+Web and Meta test messages use the shared conversation service. A database
+handoff row is the authority for ownership: `queued` and `assigned` do not mean
+an employee is present; only an explicit `assigned -> active` transaction does.
+While active, customer messages are persisted and audited without invoking the
+model or deterministic draft workflow. Assignment, joining, employee replies,
+resolution, and optional automation resume are transaction-safe database
+operations behind tenant-scoped application services.
+
 ## Deployment principle
 
 Begin with one web application and one Supabase project. Separate development, staging, and production environments before real customer data is used.
+
+## Phase 8 status-verification boundary
+
+Public status lookup uses a server-only challenge service and provider
+abstraction. References never authorize reads. OTPs and short-lived status
+tokens are stored only as HMAC digests, attempts are transactionally bounded,
+and tokens bind to one tenant and request. Public responses use a six-field
+allowlist that excludes notes, priorities, history reasons, and employee data.

@@ -25,6 +25,16 @@ export interface WhatsAppRepository {
     }>,
   ): Promise<WhatsAppIngestResult | null>;
   claim(organizationId: string, deliveryId: string): Promise<boolean>;
+  release(
+    organizationId: string,
+    deliveryId: string,
+    errorCode: string,
+  ): Promise<boolean>;
+  consumeRateLimit(
+    organizationId: string,
+    action: "whatsapp_account" | "whatsapp_sender" | "whatsapp_agent",
+    subjectDigest: string,
+  ): Promise<boolean>;
   summaryReady(
     organizationId: string,
     conversationId: string,
@@ -46,13 +56,21 @@ export interface WhatsAppRepository {
     assistantMessageId: string,
     traceId: string,
   ): Promise<string | null>;
+  completeWithoutReply?(
+    organizationId: string,
+    deliveryId: string,
+  ): Promise<boolean>;
+  claimOutbound(
+    organizationId: string,
+    inboundDeliveryId: string,
+  ): Promise<{ id: string; content: string } | null>;
   markUnsupported(organizationId: string, deliveryId: string): Promise<void>;
   recordSendResult(
     organizationId: string,
     outboundDeliveryId: string,
     result:
       { ok: true; providerMessageId: string } | { ok: false; code: string },
-  ): Promise<void>;
+  ): Promise<boolean>;
   updateStatus(
     input: Readonly<{
       phoneNumberId: string;

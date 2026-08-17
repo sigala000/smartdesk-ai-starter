@@ -184,6 +184,17 @@ Before merging a feature:
 - New tenant tables have RLS tests
 - New agent tools have schema and negative tests
 
+Phase 7 additionally requires concurrent duplicate handoff creation to produce
+one queue item, concurrent/stale ownership changes to fail closed, foreign
+tenant employees to see no handoffs, queued/assigned wording not to claim human
+presence, active ownership to pause assistant generation, and explicit resolve
+state to be required before automation resumes.
+
+Phase 8 additionally requires reference-only denial, indistinguishable
+challenge responses, production mock rejection, expiry and attempt lockout,
+one-time token issuance, token/reference and tenant binding, customer-safe DTO
+allowlisting, and an end-to-end challenge/verify/status journey.
+
 ## Manual pilot checklist
 
 - Test on desktop and mobile browser.

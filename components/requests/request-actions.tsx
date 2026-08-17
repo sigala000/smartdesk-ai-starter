@@ -11,6 +11,7 @@ import type { EmployeeRequestDetail } from "@/lib/dto/request-dto";
 type Props = Readonly<{
   request: EmployeeRequestDetail;
   canAssign: boolean;
+  canApproveQuotation: boolean;
   canTransition: boolean;
   canAddNote: boolean;
   canRequestInformation: boolean;
@@ -45,6 +46,7 @@ async function mutation(
 export function RequestActions({
   request,
   canAssign,
+  canApproveQuotation,
   canTransition,
   canAddNote,
   canRequestInformation,
@@ -194,9 +196,40 @@ export function RequestActions({
           </label>
           <button disabled={pending}>Record question</button>
           <small>
-            This records the question; customer delivery is not part of Phase 3.
+            The question is saved in the linked customer conversation.
           </small>
         </form>
+      ) : null}
+      {canApproveQuotation &&
+      request.attachments.some(
+        (item) => item.mimeType === "application/pdf" && !item.approvedAt,
+      ) ? (
+        <div>
+          <h3>Approve quotation evidence</h3>
+          {request.attachments
+            .filter(
+              (item) => item.mimeType === "application/pdf" && !item.approvedAt,
+            )
+            .map((item) => (
+              <button
+                key={item.id}
+                disabled={pending}
+                onClick={async () => {
+                  setPending(true);
+                  const error = await mutation(
+                    `/api/dashboard/requests/${request.id}/quotations/${item.id}/approve`,
+                    "POST",
+                    {},
+                  );
+                  setPending(false);
+                  setMessage(error ?? "Quotation approved.");
+                  if (!error) router.refresh();
+                }}
+              >
+                Approve {item.filename} as quotation
+              </button>
+            ))}
+        </div>
       ) : null}
     </section>
   );

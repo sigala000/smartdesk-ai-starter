@@ -7,6 +7,8 @@ out/
 
 # Tests
 coverage/
+test-results/
+playwright-report/
 
 # Environment files (the example is intentionally tracked)
 .env

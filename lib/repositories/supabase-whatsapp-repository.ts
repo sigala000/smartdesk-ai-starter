@@ -41,6 +41,36 @@ export class SupabaseWhatsAppRepository implements WhatsAppRepository {
     return result.error === null && result.data === true;
   }
 
+  async release(organizationId: string, deliveryId: string, errorCode: string) {
+    const result = await this.client.rpc("release_whatsapp_delivery", {
+      p_delivery_id: deliveryId,
+      p_error_code: errorCode,
+      p_organization_id: organizationId,
+    });
+    return result.error === null && result.data === true;
+  }
+
+  async consumeRateLimit(
+    organizationId: string,
+    action: "whatsapp_account" | "whatsapp_sender" | "whatsapp_agent",
+    subjectDigest: string,
+  ) {
+    const limits = {
+      whatsapp_account: [200, 3600],
+      whatsapp_sender: [50, 3600],
+      whatsapp_agent: [20, 3600],
+    } as const;
+    const [limit, window] = limits[action];
+    const result = await this.client.rpc("consume_public_rate_limit", {
+      p_action: action,
+      p_limit: limit,
+      p_organization_id: organizationId,
+      p_subject_digest: subjectDigest,
+      p_window_seconds: window,
+    });
+    return result.error === null && result.data === true;
+  }
+
   async summaryReady(
     organizationId: string,
     conversationId: string,
@@ -112,6 +142,25 @@ export class SupabaseWhatsAppRepository implements WhatsAppRepository {
     return result.error ? null : result.data;
   }
 
+  async completeWithoutReply(organizationId: string, deliveryId: string) {
+    const result = await this.client.rpc("complete_whatsapp_handoff_delivery", {
+      p_delivery_id: deliveryId,
+      p_organization_id: organizationId,
+    });
+    return result.error === null && result.data === true;
+  }
+
+  async claimOutbound(organizationId: string, inboundDeliveryId: string) {
+    const result = await this.client.rpc("claim_whatsapp_outbound", {
+      p_inbound_delivery_id: inboundDeliveryId,
+      p_organization_id: organizationId,
+    });
+    const row = result.data?.[0];
+    return result.error || !row
+      ? null
+      : { id: row.delivery_id, content: row.message_content };
+  }
+
   async markUnsupported(organizationId: string, deliveryId: string) {
     await this.client
       .from("whatsapp_message_deliveries")
@@ -126,27 +175,21 @@ export class SupabaseWhatsAppRepository implements WhatsAppRepository {
     outboundDeliveryId: string,
     result: Parameters<WhatsAppRepository["recordSendResult"]>[2],
   ) {
-    await this.client
-      .from("whatsapp_message_deliveries")
-      .update(
-        result.ok
-          ? {
-              provider_message_id: result.providerMessageId,
-              status: "sent",
-              attempt_count: 1,
-              next_attempt_at: null,
-              last_error_code: null,
-            }
-          : {
-              status: "failed",
-              attempt_count: 1,
-              next_attempt_at: null,
-              last_error_code: result.code,
-            },
-      )
-      .eq("organization_id", organizationId)
-      .eq("id", outboundDeliveryId)
-      .eq("status", "queued");
+    const outcome = result.ok
+      ? "sent"
+      : result.code === "meta_rate_limited"
+        ? "retryable"
+        : result.code === "meta_timeout" || result.code === "meta_server_error"
+          ? "delivery_unknown"
+          : "failed";
+    const recorded = await this.client.rpc("record_whatsapp_send_result", {
+      p_delivery_id: outboundDeliveryId,
+      p_error_code: result.ok ? undefined : result.code,
+      p_organization_id: organizationId,
+      p_outcome: outcome,
+      p_provider_message_id: result.ok ? result.providerMessageId : undefined,
+    });
+    return recorded.error === null && recorded.data === true;
   }
 
   async updateStatus(input: Parameters<WhatsAppRepository["updateStatus"]>[0]) {

@@ -174,6 +174,11 @@ Response:
 
 For early local development, a non-production mock verification flow may be used. It must be clearly isolated from production.
 
+Unknown references and mismatched phone factors receive the same accepted
+challenge shape as a match. An explicitly enabled local mock may additionally
+return `developmentCode` for a real matching challenge; production rejects mock
+mode and code exposure.
+
 ### POST /api/request-status/verify
 
 Request:
@@ -197,6 +202,9 @@ Response:
 ### GET /api/request-status/{referenceNumber}
 
 Requires the short-lived verification token.
+
+Supply it as `Authorization: Bearer <token>`, never in the URL. It is bound to
+the exact request and expires without sliding renewal.
 
 Response:
 
@@ -415,11 +423,17 @@ This remains outside production MVP scope and supports only Meta's developer
 test number plus the configured authorized test recipient.
 
 - Requires `X-Hub-Signature-256` HMAC validation over the exact raw body.
+- Stops streaming request bodies as soon as the configured byte limit is exceeded.
 - Accepts bounded WhatsApp Business Account `messages` envelopes and text turns.
 - Deduplicates `(trusted account, provider message ID)` before model spend.
 - Resolves organization from the configured destination phone-number ID.
 - Persists inbound canonical messages before invoking the shared Phase 5 agent.
 - Persists assistant replies/outbox state before the server-only Meta send.
+- Applies tenant-account, sender, and agent-turn limits after authentication and
+  durable ingestion.
+- Returns `5xx` while an inbound lease or explicitly retryable Meta send needs a
+  provider retry. Ambiguous outbound outcomes are retained for review and are
+  never blindly resent.
 - Returns sanitized plain responses and an internal trace ID only in redacted logs.
 
 It does not accept tenant IDs, access tokens, request fields, or references from
@@ -452,3 +466,17 @@ type CreateRequestResult =
 ```
 
 Do not use exceptions for expected business outcomes.
+
+## Phase 7 handoff endpoints
+
+- `POST /api/conversations/:conversationId/handoffs` requests idempotent human
+  support using the existing opaque conversation cookie.
+- `GET /api/dashboard/handoffs` lists the authorized employee queue.
+- `GET /api/dashboard/handoffs/:handoffId` returns an authorized detail view.
+- `POST .../assignment`, `POST .../join`, `POST .../messages`, and
+  `POST .../resolve` perform closed, audited lifecycle transitions.
+
+Assignment never implies human presence. A successful join response with
+status `active` is the only evidence that customer-facing UI may use to claim
+an employee joined. Resolve bodies require an explicit `resumeAutomation`
+boolean.

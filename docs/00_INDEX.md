@@ -67,6 +67,9 @@ Read:
 | `11_DECISIONS.md`              | Architecture decision log                                  |
 | `12_GLOSSARY.md`               | Shared product and technical language                      |
 | `13_CODEX_TASK_PROMPTS.md`     | Focused prompts for assigning implementation work to Codex |
+| `12_MVP_ACCEPTANCE_MATRIX.md`  | Evidence-based MVP and pilot release gates                 |
+| `KNOWN_LIMITATIONS.md`         | Honest pilot constraints and external dependencies         |
+| `operations/`                  | Deployment, recovery, privacy, training, and support       |
 | `plans/`                       | Living execution plans for complex features                |
 
 ## Documentation precedence

@@ -52,7 +52,7 @@ export function transitionReasonRequired(to: RequestStatus): boolean {
 
 type TransitionPair = `${RequestStatus}->${RequestStatus}`;
 
-const phaseThreeTransitions = new Set<TransitionPair>([
+const earlyTransitions = new Set<TransitionPair>([
   "new->awaiting_customer_information",
   "new->awaiting_assessment",
   "new->unsupported",
@@ -68,7 +68,35 @@ const phaseThreeTransitions = new Set<TransitionPair>([
   "inactive->cancelled",
 ]);
 
-const commercialTransitions = phaseThreeTransitions;
+const commercialTransitions = new Set<TransitionPair>([
+  ...earlyTransitions,
+  "awaiting_assessment->site_visit_proposed",
+  "awaiting_assessment->assessment_completed",
+  "site_visit_proposed->site_visit_scheduled",
+  "site_visit_scheduled->assessment_completed",
+  "assessment_completed->quotation_preparing",
+  "quotation_preparing->quotation_sent",
+  "quotation_sent->quotation_revision_requested",
+  "quotation_sent->quotation_accepted",
+  "quotation_sent->quotation_rejected",
+  "quotation_revision_requested->quotation_preparing",
+  "quotation_accepted->scheduled",
+  "quotation_rejected->closed",
+]);
+const technicalTransitions = new Set<TransitionPair>([
+  "awaiting_assessment->site_visit_proposed",
+  "awaiting_assessment->assessment_completed",
+  "site_visit_proposed->site_visit_scheduled",
+  "site_visit_scheduled->assessment_completed",
+]);
+const projectTransitions = new Set<TransitionPair>([
+  "quotation_accepted->scheduled",
+  "scheduled->in_progress",
+  "in_progress->awaiting_client_validation",
+  "awaiting_client_validation->completed",
+  "awaiting_client_validation->in_progress",
+  "completed->closed",
+]);
 const supportTransitions = new Set<TransitionPair>([
   "new->awaiting_customer_information",
   "new->cancelled",
@@ -90,10 +118,11 @@ export function canRoleTransition(
   requestType?: RequestType,
 ): boolean {
   const pair: TransitionPair = `${from}->${to}`;
-  if (!canTransition(from, to) || !phaseThreeTransitions.has(pair))
-    return false;
+  if (!canTransition(from, to)) return false;
   if (role === "admin" || role === "manager") return true;
   if (role === "commercial_officer") return commercialTransitions.has(pair);
+  if (role === "technical_officer") return technicalTransitions.has(pair);
+  if (role === "project_manager") return projectTransitions.has(pair);
   if (role === "support_officer") {
     return (
       (requestType === "support" || requestType === "complaint") &&

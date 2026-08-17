@@ -4,6 +4,7 @@ import type { MetaWhatsAppClient } from "@/lib/meta/whatsapp-client";
 import type { WhatsAppRepository } from "@/lib/repositories/whatsapp-repository";
 import type { PublicConversationService } from "@/lib/services/public-conversation-service";
 import { WhatsAppChannelService } from "@/lib/services/whatsapp-channel-service";
+import type { PublicStage } from "@/lib/dto/public-conversation-dto";
 
 const event = {
   kind: "message" as const,
@@ -20,7 +21,7 @@ const event = {
 function setup(
   claim = true,
   sendOk = true,
-  stage: "choose_action" | "review" = "choose_action",
+  stage: PublicStage = "choose_action",
   summaryReady = false,
 ) {
   const calls: string[] = [];
@@ -36,13 +37,15 @@ function setup(
         tokenDigest: "a".repeat(64),
         deliveryId: "delivery",
         clientMessageId: "10000000-0000-4000-8000-000000000001",
-        status: "received",
+        status: claim ? "received" : "sent",
       };
     }),
     claim: vi.fn(async () => {
       calls.push("claim");
       return claim;
     }),
+    release: vi.fn(async () => true),
+    consumeRateLimit: vi.fn(async () => true),
     summaryReady: vi.fn(async () => summaryReady),
     restoreConversationAccess: vi.fn(async () => true),
     findAssistantReply: vi.fn(async () => ({
@@ -50,8 +53,12 @@ function setup(
       content: "Which service?",
     })),
     complete: vi.fn(async () => "outbound"),
+    claimOutbound: vi.fn(async () => ({
+      id: "outbound",
+      content: "Which service?",
+    })),
     markUnsupported: vi.fn(async () => undefined),
-    recordSendResult: vi.fn(async () => undefined),
+    recordSendResult: vi.fn(async () => true),
     updateStatus: vi.fn(async () => undefined),
   } satisfies WhatsAppRepository;
   const context = {
@@ -81,7 +88,13 @@ function setup(
         version: 1,
       },
       prompt: "Welcome",
-      services: [],
+      services: [
+        {
+          id: "12000000-0000-4000-8000-000000000002",
+          name: "House renovation",
+          description: "Renovation work",
+        },
+      ],
       messages: [],
     },
   };
@@ -153,11 +166,54 @@ describe("WhatsApp channel service", () => {
     });
     expect(fixture.calls).toEqual(["ingest", "claim", "context", "agent"]);
     expect(fixture.conversations.message).toHaveBeenCalledOnce();
+    expect(fixture.conversations.message).toHaveBeenCalledWith(
+      "conversation",
+      "a".repeat(64),
+      expect.objectContaining({
+        kind: "action",
+        action: "request_quotation",
+      }),
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+    );
     expect(fixture.sender.sendText).toHaveBeenCalledWith(
       "237600000001",
       "Which service?",
     );
     expect(fixture.repository.recordSendResult).toHaveBeenCalledOnce();
+  });
+
+  it("selects a listed service without depending on the AI provider", async () => {
+    const fixture = setup(true, true, "choose_service");
+    await fixture.service.handle({ ...event, text: "House renovation" });
+    expect(fixture.conversations.message).toHaveBeenCalledWith(
+      "conversation",
+      "a".repeat(64),
+      expect.objectContaining({
+        kind: "answer",
+        value: "12000000-0000-4000-8000-000000000002",
+      }),
+      expect.any(String),
+    );
+  });
+
+  it("submits required answers and optional skips deterministically", async () => {
+    const required = setup(true, true, "collect_name");
+    await required.service.handle({ ...event, text: "John Mbah" });
+    expect(required.conversations.message).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ kind: "answer", value: "John Mbah" }),
+      expect.any(String),
+    );
+
+    const optional = setup(true, true, "collect_email");
+    await optional.service.handle({ ...event, text: "Skip" });
+    expect(optional.conversations.message).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ kind: "skip" }),
+      expect.any(String),
+    );
   });
 
   it("deduplicates before agent invocation or outbound sending", async () => {
@@ -197,6 +253,91 @@ describe("WhatsApp channel service", () => {
       "outbound",
       { ok: false, code: "meta_timeout" },
     );
+  });
+
+  it("keeps Meta retrying while another worker holds the processing lease", async () => {
+    const fixture = setup(false);
+    fixture.repository.ingest.mockResolvedValueOnce({
+      created: false,
+      organizationId: "trusted-organization",
+      accountId: "trusted-account",
+      identityId: "identity",
+      conversationId: "conversation",
+      tokenDigest: "a".repeat(64),
+      deliveryId: "delivery",
+      clientMessageId: "10000000-0000-4000-8000-000000000001",
+      status: "processing",
+    });
+    await expect(fixture.service.handle(event)).resolves.toMatchObject({
+      accepted: false,
+      duplicate: true,
+    });
+    expect(fixture.sender.sendText).not.toHaveBeenCalled();
+  });
+
+  it("reuses the persisted reply on a retry without invoking the agent again", async () => {
+    const fixture = setup(false);
+    fixture.repository.ingest.mockResolvedValueOnce({
+      created: false,
+      organizationId: "trusted-organization",
+      accountId: "trusted-account",
+      identityId: "identity",
+      conversationId: "conversation",
+      tokenDigest: "a".repeat(64),
+      deliveryId: "delivery",
+      clientMessageId: "10000000-0000-4000-8000-000000000001",
+      status: "processed",
+    });
+    await expect(fixture.service.handle(event)).resolves.toMatchObject({
+      accepted: true,
+      delivered: true,
+    });
+    expect(fixture.conversations.channelContext).not.toHaveBeenCalled();
+    expect(fixture.conversations.message).not.toHaveBeenCalled();
+    expect(fixture.sender.sendText).toHaveBeenCalledOnce();
+  });
+
+  it("releases a recoverable processing failure for the next Meta retry", async () => {
+    const fixture = setup();
+    fixture.conversations.channelContext = vi.fn(async () => ({
+      ok: false as const,
+      code: "internal_error",
+    }));
+    await expect(fixture.service.handle(event)).resolves.toMatchObject({
+      accepted: false,
+    });
+    expect(fixture.repository.release).toHaveBeenCalledWith(
+      "trusted-organization",
+      "delivery",
+      "context_unavailable",
+    );
+  });
+
+  it("persists a deterministic response and skips the agent when rate limited", async () => {
+    const fixture = setup();
+    fixture.repository.consumeRateLimit.mockResolvedValueOnce(false);
+    await expect(fixture.service.handle(event)).resolves.toMatchObject({
+      delivered: true,
+    });
+    expect(fixture.conversations.message).not.toHaveBeenCalled();
+    expect(fixture.conversations.recordChannelReply).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      event.text,
+      expect.stringContaining("Too many messages"),
+    );
+  });
+
+  it("requests a provider retry only for an explicitly retryable send result", async () => {
+    const fixture = setup();
+    fixture.sender.sendText = vi.fn(async () => ({
+      ok: false as const,
+      code: "meta_rate_limited" as const,
+    }));
+    await expect(fixture.service.handle(event)).resolves.toMatchObject({
+      accepted: false,
+      delivered: false,
+    });
   });
 
   it("uses the existing server-held summary and confirmation services", async () => {

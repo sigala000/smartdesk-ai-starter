@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 
 import {
   editableFields,
@@ -8,26 +14,9 @@ import {
 } from "@/lib/domain/conversation-workflow";
 import type { PublicConversationView } from "@/lib/dto/public-conversation-dto";
 import { AttachmentUploader } from "@/components/attachments/attachment-uploader";
+import { messages, type AppLocale } from "@/lib/i18n/messages";
 
 type ApiError = { error?: { message?: string } };
-const actionLabels: Record<(typeof publicActions)[number], string> = {
-  request_quotation: "Request a quotation",
-  request_site_visit: "Request a site visit",
-  ask_about_services: "Ask about services",
-  check_request_status: "Check an existing request",
-  report_problem: "Report a problem",
-  speak_to_employee: "Speak with an employee",
-};
-const fieldLabels: Record<(typeof editableFields)[number], string> = {
-  service: "Service",
-  customer_name: "Full name",
-  phone: "Contact number",
-  description: "Description",
-  location: "Location",
-  email: "Email",
-  preferred_start_date: "Preferred starting date",
-  budget: "Budget range",
-};
 
 async function jsonRequest(url: string, options?: RequestInit) {
   const response = await fetch(url, options);
@@ -40,7 +29,9 @@ async function jsonRequest(url: string, options?: RequestInit) {
 
 export function PublicChat({
   organizationSlug,
-}: Readonly<{ organizationSlug: string }>) {
+  locale,
+}: Readonly<{ organizationSlug: string; locale: AppLocale }>) {
+  const copy = messages[locale];
   const [conversation, setConversation] =
     useState<PublicConversationView | null>(null);
   const [answer, setAnswer] = useState("");
@@ -50,18 +41,44 @@ export function PublicChat({
   const [reference, setReference] = useState<string | null>(null);
   const [attachmentBusy, setAttachmentBusy] = useState(false);
   const confirmationIdempotencyKey = useRef<string | null>(null);
+  const conversationStorageKey = `smartdesk:${organizationSlug}:conversation-id`;
+
+  const rememberConversation = useCallback(
+    (id: string) => {
+      try {
+        window.localStorage.setItem(conversationStorageKey, id);
+      } catch {
+        // Storage can be unavailable in privacy-restricted browsers. The
+        // HttpOnly access cookie still protects the active in-memory session.
+      }
+    },
+    [conversationStorageKey],
+  );
+
+  const recalledConversationId = useCallback(() => {
+    try {
+      return window.localStorage.getItem(conversationStorageKey);
+    } catch {
+      return null;
+    }
+  }, [conversationStorageKey]);
+
+  const createConversation = useCallback(async () => {
+    const payload = await jsonRequest("/api/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ organizationSlug, locale }),
+    });
+    const created = payload.conversation as { id: string };
+    rememberConversation(created.id);
+    return jsonRequest(`/api/conversations/${created.id}`);
+  }, [locale, organizationSlug, rememberConversation]);
 
   async function start() {
     setPending(true);
     setError(null);
     try {
-      const payload = await jsonRequest("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationSlug, locale: "en" }),
-      });
-      const created = payload.conversation as { id: string };
-      const view = await jsonRequest(`/api/conversations/${created.id}`);
+      const view = await createConversation();
       setConversation(view.conversation as PublicConversationView);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Chat unavailable.");
@@ -74,13 +91,17 @@ export function PublicChat({
     let active = true;
     async function initialize() {
       try {
-        const payload = await jsonRequest("/api/conversations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ organizationSlug, locale: "en" }),
-        });
-        const created = payload.conversation as { id: string };
-        const view = await jsonRequest(`/api/conversations/${created.id}`);
+        const recalledId = recalledConversationId();
+        let view: Record<string, unknown>;
+        if (recalledId) {
+          try {
+            view = await jsonRequest(`/api/conversations/${recalledId}`);
+          } catch {
+            view = await createConversation();
+          }
+        } else {
+          view = await createConversation();
+        }
         if (active)
           setConversation(view.conversation as PublicConversationView);
       } catch (reason) {
@@ -96,7 +117,47 @@ export function PublicChat({
     return () => {
       active = false;
     };
-  }, [organizationSlug]);
+  }, [createConversation, recalledConversationId]);
+
+  useEffect(() => {
+    if (!conversation?.handoffStatus) return;
+    const timer = window.setInterval(() => {
+      void jsonRequest(`/api/conversations/${conversation.id}`)
+        .then((payload) =>
+          setConversation(payload.conversation as PublicConversationView),
+        )
+        .catch(() => undefined);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [conversation?.id, conversation?.handoffStatus]);
+
+  async function requestHuman() {
+    if (!conversation) return;
+    setPending(true);
+    setError(null);
+    try {
+      await jsonRequest(`/api/conversations/${conversation.id}/handoffs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRequestId: crypto.randomUUID(),
+          reason: "Customer explicitly requested human support.",
+        }),
+      });
+      const payload = await jsonRequest(
+        `/api/conversations/${conversation.id}`,
+      );
+      setConversation(payload.conversation as PublicConversationView);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Human support could not be requested.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
 
   async function send(body: object) {
     if (!conversation) return;
@@ -183,7 +244,7 @@ export function PublicChat({
   async function edit(field: (typeof editableFields)[number]) {
     if (!conversation) return;
     const value = window.prompt(
-      `Enter the new ${fieldLabels[field].toLowerCase()}:`,
+      `Enter the new ${copy.fields[field].toLowerCase()}:`,
     );
     if (!value) return;
     setPending(true);
@@ -214,15 +275,15 @@ export function PublicChat({
     return (
       <div className="chat-card" aria-busy="true">
         <h1>BuildPro Cameroon</h1>
-        <p>Opening the virtual assistant…</p>
+        <p>{copy.opening}</p>
       </div>
     );
   if (!conversation)
     return (
       <div className="chat-card error-panel">
-        <h1>Chat unavailable</h1>
+        <h1>{copy.unavailable}</h1>
         <p>{error}</p>
-        <button onClick={() => void start()}>Start again</button>
+        <button onClick={() => void start()}>{copy.restart}</button>
       </div>
     );
 
@@ -231,13 +292,16 @@ export function PublicChat({
     <section className="chat-card" aria-busy={pending}>
       <header>
         <p className="eyebrow">BuildPro Cameroon</p>
-        <h1>Virtual request assistant</h1>
-        <p>
-          I’m a virtual assistant. I collect your request for a BuildPro
-          employee; I do not calculate prices or promise schedules.
-        </p>
+        <h1>{copy.virtualAssistant}</h1>
+        <p>{copy.introduction}</p>
       </header>
-      <div className="chat-transcript" aria-live="polite">
+      <div
+        className="chat-transcript"
+        aria-label="Conversation transcript"
+        aria-live="polite"
+        role="log"
+        tabIndex={0}
+      >
         {conversation.messages.map((message) => (
           <article
             className={`chat-message ${message.senderType}`}
@@ -271,7 +335,44 @@ export function PublicChat({
           </p>
         </div>
       ) : null}
-      {!reference && draft.stage === "choose_action" ? (
+      {conversation.handoffStatus ? (
+        <div className="success-panel" role="status">
+          <h2>
+            {conversation.handoffStatus === "active"
+              ? "A BuildPro employee has joined"
+              : conversation.handoffStatus === "assigned"
+                ? "Your conversation is assigned"
+                : "Human support requested"}
+          </h2>
+          <p>
+            {conversation.handoffStatus === "active"
+              ? "Messages now go to the employee. The virtual assistant is paused."
+              : "Your messages are saved for the support team. We will not claim an employee has joined until one accepts."}
+          </p>
+          <form
+            onSubmit={(event: FormEvent) => {
+              event.preventDefault();
+              void send({ kind: "message", message: answer });
+            }}
+          >
+            <label htmlFor="handoff-message">
+              Message for the support team
+            </label>
+            <input
+              id="handoff-message"
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+              disabled={pending}
+              maxLength={2000}
+              required
+            />
+            <button disabled={pending}>Send message</button>
+          </form>
+        </div>
+      ) : null}
+      {!conversation.handoffStatus &&
+      !reference &&
+      draft.stage === "choose_action" ? (
         <>
           <form
             onSubmit={(event: FormEvent) => {
@@ -297,15 +398,21 @@ export function PublicChat({
               <button
                 disabled={pending}
                 key={action}
-                onClick={() => void send({ kind: "action", action })}
+                onClick={() =>
+                  action === "speak_to_employee"
+                    ? void requestHuman()
+                    : void send({ kind: "action", action })
+                }
               >
-                {actionLabels[action]}
+                {copy.actions[action]}
               </button>
             ))}
           </div>
         </>
       ) : null}
-      {!reference && draft.stage === "choose_service" ? (
+      {!conversation.handoffStatus &&
+      !reference &&
+      draft.stage === "choose_service" ? (
         <div className="chat-options">
           {conversation.services.map((service) => (
             <button
@@ -318,7 +425,8 @@ export function PublicChat({
           ))}
         </div>
       ) : null}
-      {!reference &&
+      {!conversation.handoffStatus &&
+      !reference &&
       ![
         "choose_action",
         "choose_service",
@@ -356,7 +464,7 @@ export function PublicChat({
           </div>
         </form>
       ) : null}
-      {!reference && draft.stage === "review" ? (
+      {!conversation.handoffStatus && !reference && draft.stage === "review" ? (
         <div className="draft-summary">
           <h2>Review your request</h2>
           <dl>
@@ -408,7 +516,7 @@ export function PublicChat({
                 disabled={pending}
                 onClick={() => void edit(field)}
               >
-                Edit {fieldLabels[field]}
+                Edit {copy.fields[field]}
               </button>
             ))}
           </div>
@@ -436,14 +544,33 @@ export function PublicChat({
           </button>
         </div>
       ) : null}
-      {!reference && draft.stage === "cancelled" ? (
+      {!conversation.handoffStatus &&
+      !reference &&
+      draft.stage === "cancelled" ? (
         <div className="empty-state">
           <h2>Draft cancelled</h2>
           <p>No request was created.</p>
           <button onClick={() => void start()}>Start a new chat</button>
         </div>
       ) : null}
-      {pending ? <p role="status">Saving…</p> : null}
+      {!conversation.handoffStatus ? (
+        <div className="chat-options">
+          <a
+            className="secondary"
+            href={`/status?conversationId=${encodeURIComponent(conversation.id)}`}
+          >
+            Check an existing request securely
+          </a>
+          <button
+            className="secondary"
+            disabled={pending}
+            onClick={() => void requestHuman()}
+          >
+            {copy.requestHuman}
+          </button>
+        </div>
+      ) : null}
+      {pending ? <p role="status">{copy.saving}</p> : null}
     </section>
   );
 }

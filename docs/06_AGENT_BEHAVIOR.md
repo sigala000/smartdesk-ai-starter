@@ -344,4 +344,8 @@ Only after a successful tool result:
 
 ### Safety issue
 
-> This may require immediate professional attention. I will transfer the conversation to an employee. Please avoid entering or touching any area that appears unsafe.
+> This may require immediate professional attention. Please avoid entering or touching any area that appears unsafe. I have requested urgent human support.
+
+The final sentence is permitted only after the handoff service confirms a
+persisted queued handoff. The assistant may say that a human has joined only
+after the backend reports the handoff as `active`.

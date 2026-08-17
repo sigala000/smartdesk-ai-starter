@@ -250,3 +250,32 @@ Final customer text is accepted only when deterministic validation finds no proh
 - 2026-08-10: Provider-message uniqueness and database processing claims precede model execution. Canonical customer content is committed by the existing conversation service before the shared agent is invoked.
 - 2026-08-10: WhatsApp confirmation is recognized only from the authoritative review stage, issues server-held nonce material, and calls the existing idempotent `confirm_public_request` transaction.
 - 2026-08-10: Outbound prose and intent are persisted before Meta sending. Ambiguous provider failures are not blindly retried because Cloud API text sends have no application-controlled idempotency key.
+- 2026-08-11: WhatsApp processing failures release their inbound claim, while duplicate callbacks during an active lease return a retryable response instead of prematurely acknowledging unfinished work. Explicit Meta 429 responses retry only the persisted outbox reply; timeouts and server errors remain `delivery_unknown` for review.
+- 2026-08-11: WhatsApp applies authenticated tenant-account, sender, and agent-turn limits using the existing PostgreSQL rate-limit primitive. A limited turn is preserved with a deterministic customer-safe reply and never reaches OpenAI.
+- 2026-08-11: Webhook bodies are size-limited during streaming. Meta verification query strings require infrastructure-level redaction because the provider protocol places the shared verify token in the URL.
+
+# Implemented Phase 7 human handoff decisions
+
+- 2026-08-11: The persisted handoff status is authoritative. Assignment and
+  joining are separate; only `active` supports a claim that an employee joined.
+- 2026-08-11: One open handoff per conversation is enforced by a partial unique
+  index and row-locked idempotent creation. Priority may be elevated by later
+  safety evidence but not silently downgraded.
+- 2026-08-11: The shared web/WhatsApp conversation service persists customer
+  messages and skips OpenAI while a handoff is open. Employee ownership and
+  automation resume require explicit database transitions.
+- 2026-08-11: Request-information questions and responses carry the request ID.
+  Confirmed conversations may reopen through the controlled employee action,
+  and the customer's response returns the same request to `new` atomically.
+
+# Implemented Phase 8 request-status decisions
+
+- 2026-08-11: Status verification uses the confirmed request phone, opaque
+  challenges, and short-lived random tokens stored only as HMAC digests.
+- 2026-08-11: Unknown references and mismatched factors receive synthetic
+  accepted challenges. Transactional attempts and database rate limits bound
+  guessing without disclosing existence.
+- 2026-08-11: The local mock is blocked by environment and runtime production
+  checks. The production interface fails truthfully until an SMS vendor exists.
+- 2026-08-11: Customer status is a server-owned allowlist; raw request rows,
+  notes, priorities, assignments, employees, and history reasons remain private.

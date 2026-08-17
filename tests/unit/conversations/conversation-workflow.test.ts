@@ -82,7 +82,7 @@ describe("deterministic public conversation workflow", () => {
 
   it("does not fabricate status or human handoff behavior", () => {
     expect(applyAction("check_request_status").reply).toContain(
-      "identity verification",
+      "secure request status page",
     );
     expect(applyAction("speak_to_employee").reply).toContain("cannot claim");
   });

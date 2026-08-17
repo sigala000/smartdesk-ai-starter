@@ -7,11 +7,19 @@ import type { RequestServiceError } from "@/lib/services/request-service";
 import type { PublicConversationError } from "@/lib/services/public-conversation-service";
 import type { AccessResolution } from "@/lib/auth/access-records";
 import type { AttachmentError } from "@/lib/services/attachment-service";
+import type { HandoffServiceError } from "@/lib/services/handoff-service";
 
 const privateHeaders = { "Cache-Control": "private, no-store" };
 
+function responseTraceId() {
+  return randomUUID();
+}
+
 export function apiSuccess<T>(body: T, status = 200) {
-  return NextResponse.json(body, { status, headers: privateHeaders });
+  return NextResponse.json(body, {
+    status,
+    headers: { ...privateHeaders, "X-Request-Id": responseTraceId() },
+  });
 }
 
 export function apiValidation(error: ZodError) {
@@ -29,20 +37,35 @@ export function apiError(
   status: number,
   fieldErrors?: Record<string, string[] | undefined>,
 ) {
+  const traceId = responseTraceId();
   return NextResponse.json(
     {
       error: {
         code,
         message,
         ...(fieldErrors ? { fieldErrors } : {}),
-        traceId: randomUUID(),
+        traceId,
       },
     },
-    { status, headers: privateHeaders },
+    {
+      status,
+      headers: { ...privateHeaders, "X-Request-Id": traceId },
+    },
   );
 }
 
 export function apiServiceError(error: RequestServiceError) {
+  const status = {
+    validation_error: 400,
+    forbidden: 403,
+    not_found: 404,
+    conflict: 409,
+    internal_error: 500,
+  }[error.code];
+  return apiError(error.code, error.message, status);
+}
+
+export function apiHandoffError(error: HandoffServiceError) {
   const status = {
     validation_error: 400,
     forbidden: 403,

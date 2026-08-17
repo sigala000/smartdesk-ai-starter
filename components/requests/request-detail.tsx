@@ -130,6 +130,12 @@ export function RequestDetail({
           target={{ kind: "request", requestId: request.id }}
           initialAttachments={request.attachments}
         />
+        {request.attachments.some((item) => item.approvedAt) ? (
+          <p>
+            Approved quotations:{" "}
+            {request.attachments.filter((item) => item.approvedAt).length}
+          </p>
+        ) : null}
       </section>
     </div>
   );

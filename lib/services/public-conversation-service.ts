@@ -8,6 +8,11 @@ import type { AgentOrchestrator } from "@/lib/agent/orchestrator";
 import type { TrustedAgentContext } from "@/lib/agent/types";
 import type { z } from "zod";
 import { saveConversationFieldsSchema } from "@/lib/agent/tool-schemas";
+import {
+  classifyEscalation,
+  type EscalationDecision,
+} from "@/lib/domain/handoffs";
+import type { HandoffService } from "@/lib/services/handoff-service";
 
 export type PublicConversationError = Readonly<{
   code:
@@ -61,6 +66,7 @@ export class PublicConversationService {
   constructor(
     private readonly repository: PublicConversationRepository,
     private readonly orchestrator?: AgentOrchestrator,
+    private readonly handoffs?: HandoffService,
   ) {}
 
   async create(slug: string, tokenDigest: string, subjectDigest: string) {
@@ -79,6 +85,25 @@ export class PublicConversationService {
         } satisfies PublicConversationError,
       };
     const result = await this.repository.create(slug, tokenDigest);
+    return result.ok
+      ? result
+      : { ok: false as const, error: mapFailure(result.code) };
+  }
+
+  async requestHandoff(
+    id: string,
+    tokenDigest: string,
+    idempotencyKey: string,
+    decision: EscalationDecision,
+  ) {
+    if (!this.handoffs)
+      return { ok: false as const, error: mapFailure("internal_error") };
+    const result = await this.handoffs.requestPublic(
+      id,
+      tokenDigest,
+      idempotencyKey,
+      decision,
+    );
     return result.ok
       ? result
       : { ok: false as const, error: mapFailure(result.code) };
@@ -107,7 +132,66 @@ export class PublicConversationService {
           message: "Too many messages were sent. Please wait and try again.",
         } satisfies PublicConversationError,
       };
+    if (input.kind === "answer") {
+      const escalation = classifyEscalation(input.value);
+      if (escalation && this.handoffs) {
+        const requested = await this.handoffs.requestPublic(
+          id,
+          tokenDigest,
+          input.clientMessageId,
+          escalation,
+        );
+        if (!requested.ok)
+          return { ok: false as const, error: mapFailure(requested.code) };
+        if (this.repository.recordHandoffCustomerMessage) {
+          const recorded = await this.repository.recordHandoffCustomerMessage(
+            id,
+            tokenDigest,
+            input.clientMessageId,
+            input.value,
+          );
+          if (!recorded.ok)
+            return { ok: false as const, error: mapFailure(recorded.code) };
+          if (recorded.value)
+            return { ok: true as const, value: recorded.value };
+        }
+      }
+    }
     if (input.kind === "message") {
+      const escalation = classifyEscalation(input.message);
+      if (escalation && this.handoffs) {
+        const requested = await this.handoffs.requestPublic(
+          id,
+          tokenDigest,
+          input.clientMessageId,
+          escalation,
+        );
+        if (!requested.ok)
+          return { ok: false as const, error: mapFailure(requested.code) };
+      }
+      if (this.repository.recordHandoffCustomerMessage) {
+        const handedOff = await this.repository.recordHandoffCustomerMessage(
+          id,
+          tokenDigest,
+          input.clientMessageId,
+          input.message,
+        );
+        if (!handedOff.ok)
+          return { ok: false as const, error: mapFailure(handedOff.code) };
+        if (handedOff.value)
+          return { ok: true as const, value: handedOff.value };
+      }
+      if (this.repository.recordRequestFollowUp) {
+        const followUp = await this.repository.recordRequestFollowUp(
+          id,
+          tokenDigest,
+          input.clientMessageId,
+          input.message,
+        );
+        if (!followUp.ok)
+          return { ok: false as const, error: mapFailure(followUp.code) };
+        if (followUp.value) return { ok: true as const, value: followUp.value };
+      }
       const existing = await this.repository.existingAgentExchange(
         id,
         tokenDigest,

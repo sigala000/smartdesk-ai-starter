@@ -13,6 +13,13 @@ export const permissions = [
   "attachments:view",
   "attachments:create",
   "attachments:invalidate",
+  "quotations:approve",
+  "handoffs:list",
+  "handoffs:view",
+  "handoffs:assign",
+  "handoffs:join",
+  "handoffs:message",
+  "handoffs:resolve",
 ] as const;
 export type Permission = (typeof permissions)[number];
 
@@ -31,6 +38,12 @@ const rolePermissions: Readonly<Record<EmployeeRole, readonly Permission[]>> = {
     "attachments:view",
     "attachments:create",
     "attachments:invalidate",
+    "quotations:approve",
+    "handoffs:list",
+    "handoffs:view",
+    "handoffs:join",
+    "handoffs:message",
+    "handoffs:resolve",
   ],
   technical_officer: [
     "dashboard:view",
@@ -43,6 +56,11 @@ const rolePermissions: Readonly<Record<EmployeeRole, readonly Permission[]>> = {
     "attachments:view",
     "attachments:create",
     "attachments:invalidate",
+    "handoffs:list",
+    "handoffs:view",
+    "handoffs:join",
+    "handoffs:message",
+    "handoffs:resolve",
   ],
   project_manager: [
     "dashboard:view",
@@ -55,6 +73,11 @@ const rolePermissions: Readonly<Record<EmployeeRole, readonly Permission[]>> = {
     "attachments:view",
     "attachments:create",
     "attachments:invalidate",
+    "handoffs:list",
+    "handoffs:view",
+    "handoffs:join",
+    "handoffs:message",
+    "handoffs:resolve",
   ],
   support_officer: [
     "dashboard:view",
@@ -67,6 +90,12 @@ const rolePermissions: Readonly<Record<EmployeeRole, readonly Permission[]>> = {
     "attachments:view",
     "attachments:create",
     "attachments:invalidate",
+    "handoffs:list",
+    "handoffs:view",
+    "handoffs:assign",
+    "handoffs:join",
+    "handoffs:message",
+    "handoffs:resolve",
   ],
   viewer: ["dashboard:view"],
 };
@@ -87,6 +116,11 @@ const navigationItems: readonly NavigationItem[] = [
     href: "/dashboard/requests",
     label: "Requests",
     permission: "requests:list",
+  },
+  {
+    href: "/dashboard/handoffs",
+    label: "Human handoffs",
+    permission: "handoffs:list",
   },
   {
     href: "/dashboard/organization",

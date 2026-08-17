@@ -42,6 +42,7 @@ export type PublicConversationView = Readonly<{
   id: string;
   organizationName: string;
   state: string;
+  handoffStatus?: "queued" | "assigned" | "active" | null;
   draft: PublicDraft;
   prompt: string;
   services: readonly Readonly<{

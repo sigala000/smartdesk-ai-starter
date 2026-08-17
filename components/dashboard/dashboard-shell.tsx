@@ -14,9 +14,12 @@ export function DashboardShell({ access, children }: DashboardShellProps) {
   return (
     <div className="dashboard-layout">
       <aside className="dashboard-sidebar">
-        <div>
-          <p className="brand">SmartDesk AI</p>
-          <p className="organization-name">{access.organization.name}</p>
+        <div className="sidebar-brand">
+          <span className="product-mark-icon">S</span>
+          <div>
+            <p className="brand">SmartDesk AI</p>
+            <p className="organization-name">{access.organization.name}</p>
+          </div>
         </div>
         <DashboardNavigation role={access.membership.role} />
         <div className="account-summary">
@@ -28,7 +31,16 @@ export function DashboardShell({ access, children }: DashboardShellProps) {
           <LogoutButton />
         </div>
       </aside>
-      <main className="dashboard-main">{children}</main>
+      <main className="dashboard-main" id="main-content">
+        <header className="dashboard-mobile-header">
+          <span className="product-mark-icon">S</span>
+          <div>
+            <strong>{access.organization.name}</strong>
+            <small>{formatRole(access.membership.role)}</small>
+          </div>
+        </header>
+        {children}
+      </main>
     </div>
   );
 }

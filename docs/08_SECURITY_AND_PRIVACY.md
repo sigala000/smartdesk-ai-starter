@@ -87,7 +87,16 @@ Cloud API access token, and test-recipient allowlist in server-only environment
 configuration. POST authentication uses the raw-body HMAC; the signed
 destination phone-number ID maps to one database-configured tenant. Provider
 message IDs are unique per account and processing claims prevent webhook retries
-from repeating model/tool execution.
+from repeating model/tool execution. Authenticated account, sender, and agent
+limits are tenant-scoped. Processing failures release their claim or keep Meta
+on a bounded lease retry; outbound work is claimed before sending, and ambiguous
+provider outcomes are not automatically resent.
+
+Meta verification puts the verification token in the callback query string as
+required by the provider protocol. Production and tunnel access logging for
+`/api/webhooks/whatsapp` must redact `hub.verify_token` or omit query strings.
+Rotate the verification token after temporary tunnel testing and whenever log
+redaction cannot be confirmed.
 
 Rules:
 
@@ -283,3 +292,27 @@ Before real customer deployment:
 - Unauthorized roles cannot upload quotations or change protected statuses.
 - Signed file URLs expire.
 - Secrets are absent from client bundles and repository history.
+
+## Phase 7 handoff controls
+
+- Public handoff creation requires the opaque conversation credential and a
+  server-only service-role adapter; anonymous table access remains denied.
+- Employee organization, role, and member identity are resolved from the
+  authenticated session and repeated in database authorization checks.
+- Assignees must be active, non-viewer members of the same organization.
+- One partial unique index permits only one non-terminal handoff per
+  conversation, and row locks serialize assignment, joining, and resolution.
+- Customer content is excluded from audit metadata; audit rows contain bounded
+  reason/status codes and entity identifiers.
+
+## Phase 8 status-verification controls
+
+- A reference alone returns no request data or existence signal. Unknown and
+  mismatched inputs receive synthetic, shape-compatible challenge responses.
+- The confirmed request phone is the factor. Plain OTPs and tokens are never
+  stored; HMAC digests use a server-only secret.
+- Challenges expire, have bounded attempts, and lock transactionally. Tokens
+  are short-lived and bind to one tenant and request.
+- Development mock mode and code exposure are rejected in production.
+- Public status output excludes internal notes, priorities, raw history,
+  customer contact data, assignments, and employee details.
