@@ -91,3 +91,17 @@ Structured output from a server-executed action. The assistant may report succes
 ## Verification token
 
 A short-lived credential proving that a customer passed the status lookup challenge.
+# Phase 10 terms
+
+- **Developer-test recipient:** A phone number separately authorized in Meta's
+  test environment and also enabled in SmartDesk's bounded server-side allowlist.
+- **Embedded Signup:** Meta's official authorization flow through which a client
+  company selects or creates its own WABA and phone-number asset.
+- **Meta billing:** Charges and payment configuration between Meta and the client
+  company. SmartDesk does not collect the card or share a credit line.
+- **SmartDesk subscription:** The separate trial, plan, seat, usage, grace, and
+  suspension state for access to SmartDesk.
+- **WABA:** WhatsApp Business Account. A WABA may contain multiple phone numbers,
+  but it cannot be claimed by two SmartDesk tenants.
+- **Round-trip activation:** Promotion from `test_pending` to `active` only after
+  an authenticated inbound webhook and a successful outbound provider response.

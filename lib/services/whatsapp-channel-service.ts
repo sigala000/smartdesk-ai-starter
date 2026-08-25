@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
-import type { MetaWhatsAppClient } from "@/lib/meta/whatsapp-client";
+import type { MetaSendResult } from "@/lib/meta/whatsapp-client";
 import type {
   PublicDraft,
   PublicConversationView,
@@ -24,6 +24,7 @@ function stableUuid(value: string) {
 
 const explicitConfirmation = /^(confirm|confirmed|yes,? submit|submit)$/i;
 const optionalSkip = /^(skip|none|not provided|no)$/i;
+const optOut = /^(stop|unsubscribe|opt\s*out|cancel messages|arr[eê]t)$/i;
 
 function deterministicChannelInput(
   conversation: PublicConversationView,
@@ -93,16 +94,24 @@ export class WhatsAppChannelService {
   constructor(
     private readonly repository: WhatsAppRepository,
     private readonly conversations: PublicConversationService,
-    private readonly sender: MetaWhatsAppClient,
+    private readonly sender: Readonly<{
+      sendText(
+        recipient: string,
+        text: string,
+        context?: Readonly<{ organizationId: string; accountId: string }>,
+      ): Promise<MetaSendResult>;
+    }>,
     private readonly config: Readonly<{
       phoneNumberId: string;
       businessAccountId: string;
-      testRecipient: string;
+      testRecipient?: string;
+      testRecipients?: readonly string[];
     }>,
   ) {}
 
   private async sendOutbound(
     organizationId: string,
+    accountId: string,
     inboundDeliveryId: string,
     recipient: string,
     traceId: string,
@@ -113,7 +122,10 @@ export class WhatsAppChannelService {
     );
     if (!outbound)
       return { accepted: true as const, processed: false, duplicate: true };
-    const sent = await this.sender.sendText(recipient, outbound.content);
+    const sent = await this.sender.sendText(recipient, outbound.content, {
+      organizationId,
+      accountId,
+    });
     const recorded = await this.repository.recordSendResult(
       organizationId,
       outbound.id,
@@ -133,18 +145,31 @@ export class WhatsAppChannelService {
 
   async handle(event: WhatsAppWebhookEvent, traceId = randomUUID()) {
     if (event.kind === "status") {
-      if (event.phoneNumberId === this.config.phoneNumberId)
-        await this.repository.updateStatus(event);
+      await this.repository.updateStatus(event);
       return { accepted: true as const, processed: false };
     }
-    if (
-      event.phoneNumberId !== this.config.phoneNumberId ||
-      event.businessAccountId !== this.config.businessAccountId ||
-      event.waId !== this.config.testRecipient
-    ) {
+    const resolved = this.repository.resolveAccount
+      ? await this.repository.resolveAccount({
+          phoneNumberId: event.phoneNumberId,
+          businessAccountId: event.businessAccountId,
+          waId: event.waId,
+        })
+      : null;
+    const legacyRecipients =
+      this.config.testRecipients ??
+      (this.config.testRecipient ? [this.config.testRecipient] : []);
+    const legacyMatches =
+      event.phoneNumberId === this.config.phoneNumberId &&
+      event.businessAccountId === this.config.businessAccountId &&
+      legacyRecipients.includes(event.waId);
+    if (!(resolved?.recipientAllowed || legacyMatches)) {
       console.info("whatsapp_event_ignored", {
         traceId,
         code: "destination_mismatch",
+        phoneNumberMatches: event.phoneNumberId === this.config.phoneNumberId,
+        businessAccountMatches:
+          event.businessAccountId === this.config.businessAccountId,
+        testRecipientMatches: legacyRecipients.includes(event.waId),
       });
       return { accepted: true as const, processed: false };
     }
@@ -179,6 +204,7 @@ export class WhatsAppChannelService {
       if (ingested.status === "processed")
         return this.sendOutbound(
           ingested.organizationId,
+          ingested.accountId,
           ingested.deliveryId,
           event.waId,
           traceId,
@@ -194,6 +220,51 @@ export class WhatsAppChannelService {
       );
       return { accepted: false as const, processed: false };
     };
+
+    if (optOut.test(event.text) && this.repository.recordOptOut) {
+      const recipientDigest = digest(`${ingested.accountId}:${event.waId}`);
+      if (
+        !(await this.repository.recordOptOut(
+          ingested.organizationId,
+          ingested.accountId,
+          recipientDigest,
+          traceId,
+        ))
+      )
+        return fail("opt_out_failed");
+      const current = await this.conversations.channelContext(
+        ingested.conversationId,
+        ingested.tokenDigest,
+      );
+      if (!current.ok) return fail("context_unavailable");
+      const recorded = await this.conversations.recordChannelReply(
+        current.value,
+        ingested.clientMessageId,
+        event.text,
+        "You have been opted out of business-initiated WhatsApp messages. You can still contact us when you need help.",
+      );
+      if (!recorded.ok) return fail("opt_out_reply_failed");
+      const reply = await this.repository.findAssistantReply(
+        ingested.organizationId,
+        ingested.conversationId,
+        ingested.clientMessageId,
+      );
+      if (!reply) return fail("assistant_reply_missing");
+      const outboundId = await this.repository.complete(
+        ingested.organizationId,
+        ingested.deliveryId,
+        reply.id,
+        traceId,
+      );
+      if (!outboundId) return fail("outbound_intent_failed");
+      return this.sendOutbound(
+        ingested.organizationId,
+        ingested.accountId,
+        ingested.deliveryId,
+        event.waId,
+        traceId,
+      );
+    }
 
     const subjectDigest = digest(`${ingested.accountId}:${event.waId}`);
     const current = await this.conversations.channelContext(
@@ -338,6 +409,7 @@ export class WhatsAppChannelService {
     if (!outboundId) return fail("outbound_intent_failed");
     return this.sendOutbound(
       ingested.organizationId,
+      ingested.accountId,
       ingested.deliveryId,
       event.waId,
       traceId,

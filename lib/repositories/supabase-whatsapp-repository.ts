@@ -20,6 +20,11 @@ export class SupabaseWhatsAppRepository implements WhatsAppRepository {
     });
     const row = result.data?.[0];
     if (result.error || !row) return null;
+    await this.client
+      .from("whatsapp_accounts")
+      .update({ last_successful_webhook_at: new Date().toISOString() })
+      .eq("organization_id", row.organization_id)
+      .eq("id", row.account_id);
     return {
       created: row.created,
       organizationId: row.organization_id,
@@ -189,6 +194,45 @@ export class SupabaseWhatsAppRepository implements WhatsAppRepository {
       p_outcome: outcome,
       p_provider_message_id: result.ok ? result.providerMessageId : undefined,
     });
+    if (result.ok)
+      await this.client
+        .from("whatsapp_accounts")
+        .update({
+          last_successful_outbound_at: new Date().toISOString(),
+          connection_status: "active",
+          last_error_code: null,
+        })
+        .eq("organization_id", organizationId)
+        .eq(
+          "id",
+          (
+            await this.client
+              .from("whatsapp_message_deliveries")
+              .select("whatsapp_account_id")
+              .eq("organization_id", organizationId)
+              .eq("id", outboundDeliveryId)
+              .maybeSingle()
+          ).data?.whatsapp_account_id ?? "",
+        )
+        .eq("mode", "production");
+    if (!result.ok && result.code === "meta_billing_required") {
+      const delivery = await this.client
+        .from("whatsapp_message_deliveries")
+        .select("whatsapp_account_id")
+        .eq("organization_id", organizationId)
+        .eq("id", outboundDeliveryId)
+        .maybeSingle();
+      if (delivery.data)
+        await this.client
+          .from("whatsapp_accounts")
+          .update({
+            billing_status: "action_required",
+            connection_status: "billing_required",
+            last_error_code: "meta_billing_required",
+          })
+          .eq("organization_id", organizationId)
+          .eq("id", delivery.data.whatsapp_account_id);
+    }
     return recorded.error === null && recorded.data === true;
   }
 
@@ -199,5 +243,78 @@ export class SupabaseWhatsAppRepository implements WhatsAppRepository {
       p_provider_message_id: input.providerMessageId,
       p_status: input.status,
     });
+  }
+
+  async resolveAccount(
+    input: Parameters<NonNullable<WhatsAppRepository["resolveAccount"]>>[0],
+  ) {
+    const result = await this.client.rpc("resolve_whatsapp_account", {
+      p_whatsapp_business_account_id: input.businessAccountId,
+      p_phone_number_id: input.phoneNumberId,
+      p_wa_id: input.waId,
+    });
+    const row = result.data?.[0];
+    return result.error || !row
+      ? null
+      : {
+          organizationId: row.organization_id,
+          accountId: row.account_id,
+          mode: row.mode as "developer_test" | "production",
+          billingStatus: row.billing_status as
+            "unknown" | "ready" | "action_required" | "not_applicable",
+          recipientAllowed: row.recipient_allowed,
+        };
+  }
+
+  async getOutboundConnection(organizationId: string, accountId: string) {
+    const account = await this.client
+      .from("whatsapp_accounts")
+      .select(
+        "phone_number_id,graph_api_version,mode,connection_status,billing_status",
+      )
+      .eq("organization_id", organizationId)
+      .eq("id", accountId)
+      .eq("is_active", true)
+      .in("connection_status", [
+        "connected",
+        "test_pending",
+        "active",
+        "degraded",
+      ])
+      .maybeSingle();
+    if (!account.data) return null;
+    const credential = await this.client
+      .from("whatsapp_credential_envelopes")
+      .select("key_version,ciphertext,initialization_vector,authentication_tag")
+      .eq("organization_id", organizationId)
+      .eq("whatsapp_account_id", accountId)
+      .eq("credential_kind", "cloud_api_access_token")
+      .maybeSingle();
+    return {
+      graphApiVersion: account.data.graph_api_version ?? "",
+      phoneNumberId: account.data.phone_number_id,
+      mode: account.data.mode as "developer_test" | "production",
+      billingStatus: account.data.billing_status as
+        "unknown" | "ready" | "action_required" | "not_applicable",
+      keyVersion: credential.data?.key_version ?? null,
+      ciphertext: credential.data?.ciphertext ?? null,
+      initializationVector: credential.data?.initialization_vector ?? null,
+      authenticationTag: credential.data?.authentication_tag ?? null,
+    };
+  }
+
+  async recordOptOut(
+    organizationId: string,
+    accountId: string,
+    recipientDigest: string,
+    traceId: string,
+  ) {
+    const result = await this.client.rpc("record_whatsapp_opt_out", {
+      p_organization_id: organizationId,
+      p_whatsapp_account_id: accountId,
+      p_recipient_digest: recipientDigest,
+      p_trace_id: traceId,
+    });
+    return result.error === null && result.data === true;
   }
 }

@@ -258,3 +258,22 @@ The chat preserves the user message, displays a neutral error, and offers a stru
 8. System writes an audit record.
 9. Customer receives an approved notification when appropriate.
 10. Employee closes the request after completion or cancellation.
+
+# Phase 10 company onboarding journey
+
+1. A company owner creates an account and confirms the email according to the
+   configured Supabase Auth policy.
+2. The owner creates one isolated onboarding workspace and becomes its first
+   administrator.
+3. The administrator adds departments/services, invites employees, and activates
+   the workspace only after the minimum catalogue exists.
+4. The administrator selects **Connect WhatsApp with Meta**. Meta—not SmartDesk—
+   collects Meta login, asset selection, terms, phone OTP/registration, and
+   client billing steps.
+5. SmartDesk exchanges the returned code server-side, validates the selected
+   assets, subscribes the WABA, encrypts the tenant credential, and shows only
+   connection/health metadata.
+6. Customers message the company's number. The signed destination resolves the
+   tenant and the same SmartDesk agent/request confirmation journey runs.
+7. Meta bills the client directly. SmartDesk's own trial/subscription state is
+   separate and contains no payment-card data.

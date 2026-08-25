@@ -208,3 +208,17 @@ allowlisting, and an end-to-end challenge/verify/status journey.
 - Test missing company knowledge.
 - Review model responses for invented claims.
 - Confirm audit events are understandable.
+
+## Phase 10 acceptance additions
+
+- Owner registration and transactional tenant creation, including duplicate
+  slug/prefix and existing-membership denial.
+- Cross-tenant denial for settings, catalogue, members, invitations, Meta
+  accounts, signup state, credential envelopes, and subscriptions.
+- Several allowed developer-test recipients plus an unlisted negative case.
+- Mocked Embedded Signup success, state replay/expiry/origin mismatch, malformed
+  provider output, asset collision, provider failure, and disconnect.
+- Encryption round-trip, tenant/account binding, tamper/key-version rejection,
+  client-bundle secret absence, and redacted logs.
+- Production destination routing, provider dedupe, account-specific credential,
+  billing-action failure, and confirmation/idempotency/handoff regressions.

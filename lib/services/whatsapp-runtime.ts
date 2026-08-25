@@ -1,23 +1,42 @@
 import "server-only";
 
-import { requireWhatsAppConfig } from "@/lib/config/env-schema";
+import {
+  requireMetaPlatformConfig,
+  requireWhatsAppConfig,
+} from "@/lib/config/env-schema";
 import { serverEnvironment } from "@/lib/config/env-server";
-import { MetaWhatsAppClient } from "@/lib/meta/whatsapp-client";
 import { SupabaseWhatsAppRepository } from "@/lib/repositories/supabase-whatsapp-repository";
 import { createPublicConversationRuntime } from "@/lib/services/public-conversation-runtime";
 import { WhatsAppChannelService } from "@/lib/services/whatsapp-channel-service";
+import { TenantWhatsAppSender } from "@/lib/services/tenant-whatsapp-sender";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export function createWhatsAppRuntime(request?: typeof fetch) {
-  const config = requireWhatsAppConfig(serverEnvironment);
-  if (!config) return null;
+  if (!serverEnvironment.META_WHATSAPP_ENABLED) return null;
+  const platform = requireMetaPlatformConfig(serverEnvironment);
+  let legacy: ReturnType<typeof requireWhatsAppConfig> = null;
+  try {
+    legacy = requireWhatsAppConfig(serverEnvironment);
+  } catch {
+    legacy = null;
+  }
+  const repository = new SupabaseWhatsAppRepository(createAdminClient());
   return {
-    config,
+    config: {
+      ...platform,
+      phoneNumberId: legacy?.phoneNumberId ?? "",
+      businessAccountId: legacy?.businessAccountId ?? "",
+      testRecipients: legacy?.testRecipients ?? [],
+    },
     service: new WhatsAppChannelService(
-      new SupabaseWhatsAppRepository(createAdminClient()),
+      repository,
       createPublicConversationRuntime(),
-      new MetaWhatsAppClient(config, request),
-      config,
+      new TenantWhatsAppSender(repository, legacy, request),
+      {
+        phoneNumberId: legacy?.phoneNumberId ?? "",
+        businessAccountId: legacy?.businessAccountId ?? "",
+        testRecipients: legacy?.testRecipients ?? [],
+      },
     ),
   };
 }

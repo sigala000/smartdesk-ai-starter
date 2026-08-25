@@ -422,3 +422,21 @@ Create:
 - Representative workflow configuration
 - Approved FAQ entries
 - Test customers and requests only in development
+
+## Phase 10 tenant and provider tables
+
+- `organizations.lifecycle_status` separates onboarding, active, suspended, and
+  closed tenant state.
+- `organization_subscriptions` stores provider-independent trial/subscription
+  state and feature entitlements, never a payment instrument.
+- `whatsapp_accounts` stores tenant-visible Meta assets, mode, connection health,
+  quality, and billing-readiness metadata.
+- `whatsapp_credential_envelopes` stores authenticated ciphertext, IV, tag, and
+  key version and has no anonymous/authenticated access.
+- `whatsapp_developer_test_recipients` is the explicit Meta test allowlist.
+- `meta_embedded_signup_attempts` stores digest-only, expiring, one-use state.
+- `organization_invitations` stores digest-only invitation tokens and role scope.
+
+Every new tenant table enforces immutable `organization_id`, same-tenant foreign
+keys, forced RLS, and least-privilege grants. No production Meta credential is
+seeded.

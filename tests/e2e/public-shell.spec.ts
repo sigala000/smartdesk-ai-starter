@@ -47,6 +47,42 @@ test("an unauthenticated employee cannot open the dashboard", async ({
   ).toBeVisible();
 });
 
+test("company registration and compliance entry points are accessible", async ({
+  page,
+}) => {
+  await page.goto("/register");
+  await expect(
+    page.getByRole("heading", { name: "Create your SmartDesk workspace" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Work email")).toHaveAttribute("type", "email");
+  for (const path of ["/privacy", "/terms", "/data-deletion"]) {
+    await page.goto(path);
+    await expect(page.locator("h1")).toBeVisible();
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(
+      results.violations.filter((violation) =>
+        ["serious", "critical"].includes(violation.impact ?? ""),
+      ),
+    ).toEqual([]);
+  }
+});
+
+test("password recovery uses a generic accessible response", async ({
+  page,
+}) => {
+  await page.goto("/forgot-password");
+  await expect(
+    page.getByRole("heading", { name: "Reset your password" }),
+  ).toBeVisible();
+  await page.getByLabel("Work email").fill("unknown@example.test");
+  await page.getByRole("button", { name: "Send recovery link" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "If an eligible account exists",
+  );
+});
+
 test("customer completes the deterministic quotation journey", async ({
   page,
 }) => {

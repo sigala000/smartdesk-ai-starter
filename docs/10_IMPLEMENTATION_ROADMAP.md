@@ -179,11 +179,29 @@ Exit criteria:
 - Pilot employees can use the dashboard.
 - Known limitations are documented.
 
+## Phase 10: Multi-tenant SaaS and production WhatsApp foundation
+
+Deliver:
+
+- Self-service company-owner onboarding and administration
+- Tenant lifecycle and provider-independent trial/subscription state
+- Multiple Meta developer-test recipients
+- Meta Embedded Signup and encrypted per-tenant credentials
+- Destination-routed production WhatsApp transport reusing existing workflows
+- Client-direct Meta billing/capability status
+- App Review, privacy, deletion, operations, and deployment readiness material
+
+Exit criteria:
+
+- A company can create an isolated workspace and configure catalogue/team.
+- Client-owned Meta assets connect without exposing a provider token.
+- Signed WhatsApp traffic uses the confirmed, idempotent SmartDesk workflow.
+- Meta/legal/payment/manual gates are documented and never automated.
+
 ## Later phases
 
 Not part of the MVP:
 
-- Production WhatsApp integration
 - Email and SMS providers
 - Automated appointment slot management
 - Configurable workflow builder

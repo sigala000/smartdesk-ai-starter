@@ -1,8 +1,8 @@
 # SmartDesk AI
 
-SmartDesk AI is a planned multi-tenant customer request and follow-up platform for service companies. It will combine guided request capture, human escalation, and an employee workflow. The first validation tenant is BuildPro Cameroon, a fictional construction company.
+SmartDesk AI is a multi-tenant customer request, quotation follow-up, and human-handoff platform for service companies. BuildPro Cameroon is the fictional validation tenant.
 
-The repository currently implements **Phase 4**: the executable Next.js and Supabase foundation, secure employee authentication, tenant-scoped request management, and a deterministic public BuildPro chat. Customers can complete a structured quotation request without OpenAI, review/edit server-stored fields, explicitly confirm, receive a backend-generated reference, and create exactly one dashboard request. Storage uploads and OpenAI are not implemented yet.
+The repository implements Phases 0–10: secure employee and company-owner onboarding, tenant-scoped request management, deterministic and OpenAI-assisted web chat, private attachments, human handoff, verified status lookup, Meta developer-test WhatsApp, and the application-side production WhatsApp SaaS foundation. A company can configure its catalogue/team and connect client-owned Meta assets through Embedded Signup. Real production WhatsApp still requires the documented Meta App Review, business/number verification, legal, billing, and owner-approval gates.
 
 ## Prerequisites
 
@@ -77,9 +77,9 @@ The guard refuses to run unless the local Supabase database is active on a loopb
 
 `npm run db:test` also provisions temporary confirmed local Auth users, verifies password login and RLS tenant scope, tests protected employee routes, and exercises request and public-conversation APIs over HTTP. Phase 4 checks cover opaque conversation access, deterministic guided collection, duplicate messages, server summary/nonce confirmation, idempotent request creation, backend references, and employee-dashboard visibility. Test fixtures are deleted after each run. The temporary service-role key is read from the local CLI and remains server-side.
 
-## Employee authentication setup
+## Company and employee onboarding
 
-Employee self-registration is disabled. Create employees through the Supabase administrator interface, use a password of at least 12 characters, and ensure the email is confirmed. Then create exactly one active membership that references the Auth user:
+New company owners use `/register`, confirm their email according to the configured Supabase Auth policy, then create an isolated workspace at `/onboarding`. Admins configure departments/services and invite employees from the organization dashboard. Existing administrator provisioning remains available for controlled pilots:
 
 ```sql
 insert into public.organization_members (
@@ -114,17 +114,20 @@ Environment variables are parsed through schemas in `lib/config/`.
 - Empty values remain valid for commands that do not instantiate Supabase Auth; authentication routes fail safely until the two public Supabase values are configured.
 - Validation errors identify invalid variable names without echoing their values.
 
-The currently documented variables are:
+The core and Phase 10 variables are documented in `.env.example`. Important additions include:
 
-| Variable                        | Exposure     | Required in Phase 2            |
-| ------------------------------- | ------------ | ------------------------------ |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Browser-safe | Yes, for authentication routes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser-safe | Yes, for authentication routes |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server only  | Yes, for public chat routes    |
-| `PUBLIC_RATE_LIMIT_SECRET`      | Server only  | Yes, for public chat routes    |
-| `OPENAI_API_KEY`                | Server only  | No                             |
-| `OPENAI_MODEL`                  | Server only  | No                             |
-| `APP_BASE_URL`                  | Server only  | No                             |
+| Variable                              | Exposure     | Required in Phase 2            |
+| ------------------------------------- | ------------ | ------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`            | Browser-safe | Yes, for authentication routes |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`       | Browser-safe | Yes, for authentication routes |
+| `SUPABASE_SERVICE_ROLE_KEY`           | Server only  | Yes, for public chat routes    |
+| `PUBLIC_RATE_LIMIT_SECRET`            | Server only  | Yes, for public chat routes    |
+| `OPENAI_API_KEY`                      | Server only  | When OpenAI is enabled         |
+| `META_APP_SECRET`                     | Server only  | When WhatsApp is enabled       |
+| `META_CREDENTIAL_ENCRYPTION_KEY`      | Server only  | Production tenant connections  |
+| `NEXT_PUBLIC_META_APP_ID`             | Browser-safe | Embedded Signup                |
+| `NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID` | Browser-safe | Embedded Signup                |
+| `APP_BASE_URL`                        | Server only  | Hosted onboarding              |
 
 `OPENAI_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` must never be exposed to browser code.
 
@@ -165,6 +168,7 @@ The authoritative order is maintained in `docs/10_IMPLEMENTATION_ROADMAP.md`:
 8. Human handoff and follow-up
 9. Status verification
 10. Hardening and pilot preparation
+11. Multi-tenant SaaS and production WhatsApp foundation
 
 Do not begin a later phase until its documentation and execution plan have been reviewed.
 
@@ -177,3 +181,4 @@ Do not begin a later phase until its documentation and execution plan have been 
 - `docs/plans/phase-2-employee-authentication.md` records the Phase 2 authentication implementation.
 - `docs/plans/phase-3-request-management.md` records the Phase 3 employee request-management implementation.
 - `docs/plans/phase-4-public-chat-and-request-draft.md` records the deterministic Phase 4 customer workflow.
+- `docs/plans/phase-10-multi-tenant-saas-and-production-whatsapp.md` records the current SaaS/Meta implementation, security decisions, verification, and external gates.

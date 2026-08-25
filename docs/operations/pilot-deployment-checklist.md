@@ -6,7 +6,12 @@ Every item needs an owner, date, environment, evidence link, and pass/fail resul
 - [ ] Release commit is reviewed, immutable, and deployed to staging first.
 - [ ] Separate staging/production Supabase and hosting projects exist.
 - [ ] Production status provider is implemented; mock variables are absent.
-- [ ] Production WhatsApp is disabled; Meta test credentials are absent from production.
+- [ ] Production WhatsApp remains disabled until Meta approval, reviewed legal
+      pages, exact domains, encryption-key ownership, and a named client
+      connection are approved; developer-test credentials are absent from
+      production tenant connections.
+- [ ] Embedded Signup replay/origin and encrypted credential tenant-binding
+      tests pass in staging.
 - [ ] Secrets are stored server-side and rotation owners are named.
 - [ ] Supabase Auth redirect URLs and site URL match the selected domains.
 - [ ] Migrations are reviewed, backed up, applied, and migration history matches.

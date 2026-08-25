@@ -237,3 +237,22 @@ Notifications must be based on backend events, not unsupported model claims.
 - Must record author and timestamp.
 - Must not be sent to the model unless needed and permitted.
 - Sensitive notes should be minimized.
+
+## Phase 10 organization and WhatsApp lifecycle
+
+A self-service tenant starts in `onboarding`. Its creator becomes the initial
+administrator in the same database transaction. Customer channels remain
+closed until the catalogue requirements are satisfied and the workspace is
+explicitly activated. Subscription eligibility is evaluated on the server.
+
+Meta Embedded Signup is bound to the authenticated administrator, organization,
+origin, one-time state digest, and expiry. A production connection enters
+`test_pending` after Meta authorization and WABA subscription. A trusted inbound
+webhook plus a successful persisted outbound reply promotes it to `active`.
+Destination WABA and Phone Number IDs—not message content—select the tenant.
+
+`STOP`, `UNSUBSCRIBE`, `OPT OUT`, `CANCEL MESSAGES`, and `ARRÊT` create a
+tenant-scoped hashed suppression record. This blocks future business-initiated
+messaging foundations; customer-initiated service conversations remain
+available. Meta billing belongs to the client and is independent of the
+SmartDesk trial/subscription lifecycle.

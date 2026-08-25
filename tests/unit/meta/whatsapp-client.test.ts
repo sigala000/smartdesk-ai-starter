@@ -38,6 +38,30 @@ describe("Meta WhatsApp client", () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
+  it("supports several explicitly authorized developer-test recipients", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ messages: [{ id: "wamid.out.2" }] }), {
+        status: 200,
+      }),
+    );
+    const client = new MetaWhatsAppClient(
+      {
+        ...config,
+        testRecipient: undefined,
+        allowedRecipients: ["237600000001", "237600000002"],
+      },
+      request,
+    );
+    await expect(
+      client.sendText("237600000002", "Hello friend"),
+    ).resolves.toMatchObject({ ok: true });
+    await expect(client.sendText("237600000003", "Denied")).resolves.toEqual({
+      ok: false,
+      code: "meta_rejected",
+    });
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it("normalizes provider failures without exposing response bodies", async () => {
     const request = vi
       .fn<typeof fetch>()
@@ -50,6 +74,13 @@ describe("Meta WhatsApp client", () => {
   });
 
   it("classifies rate limits, server failures, and ambiguous timeouts", async () => {
+    const billing = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 402 }));
+    await expect(
+      new MetaWhatsAppClient(config, billing).sendText("237600000001", "Hello"),
+    ).resolves.toEqual({ ok: false, code: "meta_billing_required" });
+
     const limited = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 429 }));

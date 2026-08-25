@@ -16,7 +16,12 @@ Application rollback uses the last verified deployment. Database migrations are 
 
 ## Provider failures
 
-OpenAI failure must retain deterministic chat behavior. Meta developer-test failure must not affect web chat. Storage failure must not create a ready attachment. Status provider failure returns a generic response without existence disclosure. Escalations never claim a human joined until backend acceptance.
+OpenAI failure must retain deterministic chat behavior. Meta developer-test or
+production connection failure must not affect web chat. Use tenant connection
+status and trace IDs; never request a client's Meta password, OTP, token, or
+payment card. Storage failure must not create a ready attachment. Status provider
+failure returns a generic response without existence disclosure. Escalations
+never claim a human joined until backend acceptance.
 
 ## Handoff and closure
 

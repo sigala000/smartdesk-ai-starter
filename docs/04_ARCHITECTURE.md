@@ -346,3 +346,20 @@ abstraction. References never authorize reads. OTPs and short-lived status
 tokens are stored only as HMAC digests, attempts are transactionally bounded,
 and tokens bind to one tenant and request. Public responses use a six-field
 allowlist that excludes notes, priorities, history reasons, and employee data.
+
+## Phase 10 SaaS and production WhatsApp boundary
+
+Self-service owners create an `onboarding` organization and first admin
+membership transactionally. Public customer channels require an active tenant
+lifecycle and eligible provider-independent subscription.
+
+One Meta app and signed webhook serve multiple companies. Destination
+phone-number ID plus WABA ID resolves exactly one tenant account. Developer-test
+accounts additionally require a stored recipient allowlist. Production
+credentials are encrypted with AES-256-GCM using tenant/account authenticated
+data and a versioned server key. The browser receives only public Meta IDs and
+an expiring one-use signup state.
+
+WhatsApp remains a transport, not a separate agent. It calls the same
+conversation service, agent orchestration, handoff ownership, and confirmed
+idempotent request transaction as web chat.

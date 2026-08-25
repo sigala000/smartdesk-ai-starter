@@ -409,7 +409,7 @@ Requirements:
 - Status transition validation
 - No AI-generated amount is treated as approved
 
-## WhatsApp developer-test webhook
+## Multi-tenant WhatsApp webhook
 
 ### GET /api/webhooks/whatsapp
 
@@ -419,8 +419,10 @@ configuration. The token is never logged or returned on failure.
 
 ### POST /api/webhooks/whatsapp
 
-This remains outside production MVP scope and supports only Meta's developer
-test number plus the configured authorized test recipient.
+The same signed endpoint supports explicitly configured developer-test accounts
+and client-connected production accounts. Test senders must be in the stored
+account allowlist. Production tenant identity comes from the unique destination
+phone/WABA mapping, never customer text.
 
 - Requires `X-Hub-Signature-256` HMAC validation over the exact raw body.
 - Stops streaming request bodies as soon as the configured byte limit is exceeded.
@@ -438,6 +440,19 @@ test number plus the configured authorized test recipient.
 
 It does not accept tenant IDs, access tokens, request fields, or references from
 the webhook body. Unsupported media never reaches OpenAI.
+
+## Phase 10 company and Meta endpoints
+
+- `POST /api/meta/whatsapp/signup-state` requires an admin/manager and creates an
+  expiring digest-only organization/member/origin-bound state.
+- `POST /api/meta/whatsapp/complete` consumes state once, exchanges the Meta code
+  server-side, validates WABA/phone assets, rejects tenant collisions, subscribes
+  the WABA, and stores an encrypted credential.
+- `POST /api/meta/whatsapp/disconnect` confirms provider unsubscribe before
+  disabling the local connection and deleting its credential envelope.
+
+The browser never receives Meta tokens or app secrets. Client Meta billing is
+direct; APIs store only readiness/action-required metadata.
 
 ## Internal service contracts
 

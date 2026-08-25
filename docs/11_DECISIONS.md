@@ -279,3 +279,24 @@ Final customer text is accepted only when deterministic validation finds no proh
   checks. The production interface fails truthfully until an SMS vendor exists.
 - 2026-08-11: Customer status is a server-owned allowlist; raw request rows,
   notes, priorities, assignments, employees, and history reasons remain private.
+# ADR-016: Client-owned Meta assets through Embedded Signup
+
+Status: Accepted
+
+Decision:
+
+Use one reviewed Meta app and webhook. Each tenant authorizes company-owned WABA
+and phone assets through Meta Embedded Signup. Destination assets resolve the
+tenant; credentials are encrypted server-side. Meta bills each client directly.
+
+Reason:
+
+This enables self-service SaaS onboarding without collecting Meta passwords,
+OTPs, payment cards, or sharing a SmartDesk credit line.
+
+Consequence:
+
+ADR-003's web-first sequencing remains historical, but its production-WhatsApp
+deferral is superseded by Phase 10. Meta approval, verification, phone setup,
+terms, and billing remain external/manual gates. The channel continues to reuse
+one SmartDesk agent and existing application services.

@@ -16,6 +16,7 @@ export type MetaSendResult =
       code:
         | "meta_timeout"
         | "meta_authentication"
+        | "meta_billing_required"
         | "meta_rate_limited"
         | "meta_server_error"
         | "meta_rejected";
@@ -27,14 +28,18 @@ export class MetaWhatsAppClient {
       graphApiVersion: string;
       accessToken: string;
       phoneNumberId: string;
-      testRecipient: string;
+      testRecipient?: string;
+      allowedRecipients?: readonly string[];
       timeoutMs: number;
     }>,
     private readonly request: typeof fetch = fetch,
   ) {}
 
   async sendText(recipient: string, text: string): Promise<MetaSendResult> {
-    if (recipient !== this.config.testRecipient)
+    const allowed =
+      this.config.allowedRecipients ??
+      (this.config.testRecipient ? [this.config.testRecipient] : null);
+    if (allowed && !allowed.includes(recipient))
       return { ok: false, code: "meta_rejected" };
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
@@ -58,6 +63,8 @@ export class MetaWhatsAppClient {
         },
       );
       if (!response.ok) {
+        if (response.status === 402)
+          return { ok: false, code: "meta_billing_required" };
         if (response.status === 401 || response.status === 403)
           return { ok: false, code: "meta_authentication" };
         if (response.status === 429)

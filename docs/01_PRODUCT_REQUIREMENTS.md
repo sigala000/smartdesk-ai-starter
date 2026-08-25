@@ -120,9 +120,14 @@ The MVP will not:
 - Process payments
 - Promise project dates
 - Replace an engineer or project manager
-- Integrate production WhatsApp
 - Make autonomous safety, legal, or financial decisions
 - Use multiple independent AI agents
+
+Phase 10 expands the validated MVP with an application-side production
+WhatsApp foundation: client-owned Meta assets connected through Embedded
+Signup, encrypted tenant credentials, destination-based routing, and existing
+confirmed request workflows. Meta approval, business/number verification,
+billing, legal approval, and phone migration remain external manual gates.
 
 ## Functional requirements
 

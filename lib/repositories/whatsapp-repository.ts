@@ -11,6 +11,32 @@ export type WhatsAppIngestResult = Readonly<{
 }>;
 
 export interface WhatsAppRepository {
+  resolveAccount?(
+    input: Readonly<{
+      phoneNumberId: string;
+      businessAccountId: string;
+      waId: string;
+    }>,
+  ): Promise<Readonly<{
+    organizationId: string;
+    accountId: string;
+    mode: "developer_test" | "production";
+    billingStatus: "unknown" | "ready" | "action_required" | "not_applicable";
+    recipientAllowed: boolean;
+  }> | null>;
+  getOutboundConnection?(
+    organizationId: string,
+    accountId: string,
+  ): Promise<Readonly<{
+    graphApiVersion: string;
+    phoneNumberId: string;
+    mode: "developer_test" | "production";
+    billingStatus: "unknown" | "ready" | "action_required" | "not_applicable";
+    keyVersion: number | null;
+    ciphertext: string | null;
+    initializationVector: string | null;
+    authenticationTag: string | null;
+  }> | null>;
   ingest(
     input: Readonly<{
       phoneNumberId: string;
@@ -79,4 +105,10 @@ export interface WhatsAppRepository {
       errorCode: string | null;
     }>,
   ): Promise<void>;
+  recordOptOut?(
+    organizationId: string,
+    accountId: string,
+    recipientDigest: string,
+    traceId: string,
+  ): Promise<boolean>;
 }

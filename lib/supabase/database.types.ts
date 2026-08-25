@@ -848,6 +848,73 @@ export type Database = {
           },
         ]
       }
+      meta_embedded_signup_attempts: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expected_origin: string
+          expires_at: string
+          id: string
+          last_error_code: string | null
+          organization_id: string
+          requested_by_member_id: string
+          state_digest: string
+          status: string
+          updated_at: string
+          whatsapp_account_id: string | null
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expected_origin: string
+          expires_at: string
+          id?: string
+          last_error_code?: string | null
+          organization_id: string
+          requested_by_member_id: string
+          state_digest: string
+          status?: string
+          updated_at?: string
+          whatsapp_account_id?: string | null
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expected_origin?: string
+          expires_at?: string
+          id?: string
+          last_error_code?: string | null
+          organization_id?: string
+          requested_by_member_id?: string
+          state_digest?: string
+          status?: string
+          updated_at?: string
+          whatsapp_account_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_embedded_signup_attempts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_embedded_signup_attempts_organization_id_requested_by_fkey"
+            columns: ["organization_id", "requested_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "meta_embedded_signup_attempts_organization_id_whatsapp_acc_fkey"
+            columns: ["organization_id", "whatsapp_account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string
@@ -906,6 +973,73 @@ export type Database = {
           },
         ]
       }
+      organization_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          department_id: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_by_member_id: string
+          organization_id: string
+          role: string
+          status: string
+          token_digest: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          department_id?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invited_by_member_id: string
+          organization_id: string
+          role: string
+          status?: string
+          token_digest: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          department_id?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_member_id?: string
+          organization_id?: string
+          role?: string
+          status?: string
+          token_digest?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitations_organization_id_department_id_fkey"
+            columns: ["organization_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_organization_id_invited_by_member_fkey"
+            columns: ["organization_id", "invited_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -957,39 +1091,166 @@ export type Database = {
           },
         ]
       }
+      organization_retention_settings: {
+        Row: {
+          attachment_days: number | null
+          conversation_days: number | null
+          customer_days: number | null
+          legal_hold: boolean
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachment_days?: number | null
+          conversation_days?: number | null
+          customer_days?: number | null
+          legal_hold?: boolean
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachment_days?: number | null
+          conversation_days?: number | null
+          customer_days?: number | null
+          legal_hold?: boolean
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_retention_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_subscriptions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          current_period_ends_at: string | null
+          feature_entitlements: Json
+          grace_ends_at: string | null
+          id: string
+          organization_id: string
+          plan_identifier: string
+          provider: string | null
+          provider_customer_reference: string | null
+          seat_limit: number | null
+          status: string
+          trial_ends_at: string
+          trial_started_at: string
+          updated_at: string
+          usage_limits: Json
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_ends_at?: string | null
+          feature_entitlements?: Json
+          grace_ends_at?: string | null
+          id?: string
+          organization_id: string
+          plan_identifier?: string
+          provider?: string | null
+          provider_customer_reference?: string | null
+          seat_limit?: number | null
+          status?: string
+          trial_ends_at: string
+          trial_started_at?: string
+          updated_at?: string
+          usage_limits?: Json
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_ends_at?: string | null
+          feature_entitlements?: Json
+          grace_ends_at?: string | null
+          id?: string
+          organization_id?: string
+          plan_identifier?: string
+          provider?: string | null
+          provider_customer_reference?: string | null
+          seat_limit?: number | null
+          status?: string
+          trial_ends_at?: string
+          trial_started_at?: string
+          updated_at?: string
+          usage_limits?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
+          business_address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          country_code: string | null
           created_at: string
           default_language: string
           id: string
+          industry: string | null
           is_active: boolean
+          lifecycle_status: string
+          logo_storage_path: string | null
           name: string
+          onboarding_completed_at: string | null
           reference_prefix: string
           slug: string
           timezone: string
           updated_at: string
+          website_url: string | null
         }
         Insert: {
+          business_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country_code?: string | null
           created_at?: string
           default_language?: string
           id?: string
+          industry?: string | null
           is_active?: boolean
+          lifecycle_status?: string
+          logo_storage_path?: string | null
           name: string
+          onboarding_completed_at?: string | null
           reference_prefix: string
           slug: string
           timezone?: string
           updated_at?: string
+          website_url?: string | null
         }
         Update: {
+          business_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country_code?: string | null
           created_at?: string
           default_language?: string
           id?: string
+          industry?: string | null
           is_active?: boolean
+          lifecycle_status?: string
+          logo_storage_path?: string | null
           name?: string
+          onboarding_completed_at?: string | null
           reference_prefix?: string
           slug?: string
           timezone?: string
           updated_at?: string
+          website_url?: string | null
         }
         Relationships: []
       }
@@ -1515,39 +1776,94 @@ export type Database = {
       }
       whatsapp_accounts: {
         Row: {
+          billing_status: string
+          capabilities: Json
+          connected_at: string | null
+          connected_by_member_id: string | null
+          connection_status: string
           created_at: string
+          disconnected_at: string | null
+          display_name: string | null
           display_phone_number: string | null
+          graph_api_version: string | null
           id: string
           is_active: boolean
           is_test: boolean
+          last_error_code: string | null
+          last_health_check_at: string | null
+          last_successful_outbound_at: string | null
+          last_successful_webhook_at: string | null
+          messaging_limit_tier: string | null
+          mode: string
           organization_id: string
           phone_number_id: string
+          quality_rating: string | null
           updated_at: string
+          webhook_subscribed: boolean
           whatsapp_business_account_id: string
         }
         Insert: {
+          billing_status?: string
+          capabilities?: Json
+          connected_at?: string | null
+          connected_by_member_id?: string | null
+          connection_status?: string
           created_at?: string
+          disconnected_at?: string | null
+          display_name?: string | null
           display_phone_number?: string | null
+          graph_api_version?: string | null
           id?: string
           is_active?: boolean
           is_test?: boolean
+          last_error_code?: string | null
+          last_health_check_at?: string | null
+          last_successful_outbound_at?: string | null
+          last_successful_webhook_at?: string | null
+          messaging_limit_tier?: string | null
+          mode?: string
           organization_id: string
           phone_number_id: string
+          quality_rating?: string | null
           updated_at?: string
+          webhook_subscribed?: boolean
           whatsapp_business_account_id: string
         }
         Update: {
+          billing_status?: string
+          capabilities?: Json
+          connected_at?: string | null
+          connected_by_member_id?: string | null
+          connection_status?: string
           created_at?: string
+          disconnected_at?: string | null
+          display_name?: string | null
           display_phone_number?: string | null
+          graph_api_version?: string | null
           id?: string
           is_active?: boolean
           is_test?: boolean
+          last_error_code?: string | null
+          last_health_check_at?: string | null
+          last_successful_outbound_at?: string | null
+          last_successful_webhook_at?: string | null
+          messaging_limit_tier?: string | null
+          mode?: string
           organization_id?: string
           phone_number_id?: string
+          quality_rating?: string | null
           updated_at?: string
+          webhook_subscribed?: boolean
           whatsapp_business_account_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_accounts_connected_member_fk"
+            columns: ["organization_id", "connected_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "whatsapp_accounts_organization_id_fkey"
             columns: ["organization_id"]
@@ -1611,6 +1927,110 @@ export type Database = {
             columns: ["organization_id", "whatsapp_identity_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_identities"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      whatsapp_credential_envelopes: {
+        Row: {
+          authentication_tag: string
+          ciphertext: string
+          created_at: string
+          credential_kind: string
+          expires_at: string | null
+          id: string
+          initialization_vector: string
+          key_version: number
+          organization_id: string
+          rotated_at: string | null
+          updated_at: string
+          whatsapp_account_id: string
+        }
+        Insert: {
+          authentication_tag: string
+          ciphertext: string
+          created_at?: string
+          credential_kind?: string
+          expires_at?: string | null
+          id?: string
+          initialization_vector: string
+          key_version: number
+          organization_id: string
+          rotated_at?: string | null
+          updated_at?: string
+          whatsapp_account_id: string
+        }
+        Update: {
+          authentication_tag?: string
+          ciphertext?: string
+          created_at?: string
+          credential_kind?: string
+          expires_at?: string | null
+          id?: string
+          initialization_vector?: string
+          key_version?: number
+          organization_id?: string
+          rotated_at?: string | null
+          updated_at?: string
+          whatsapp_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_credential_envelopes_organization_id_whatsapp_acc_fkey"
+            columns: ["organization_id", "whatsapp_account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      whatsapp_developer_test_recipients: {
+        Row: {
+          created_at: string
+          created_by_member_id: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          organization_id: string
+          updated_at: string
+          wa_id: string
+          whatsapp_account_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_member_id?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          organization_id: string
+          updated_at?: string
+          wa_id: string
+          whatsapp_account_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_member_id?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          organization_id?: string
+          updated_at?: string
+          wa_id?: string
+          whatsapp_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_developer_test_recip_organization_id_created_by_m_fkey"
+            columns: ["organization_id", "created_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "whatsapp_developer_test_recip_organization_id_whatsapp_acc_fkey"
+            columns: ["organization_id", "whatsapp_account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
             referencedColumns: ["organization_id", "id"]
           },
         ]
@@ -1765,11 +2185,106 @@ export type Database = {
           },
         ]
       }
+      whatsapp_message_templates: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          language_code: string
+          last_synced_at: string | null
+          name: string
+          organization_id: string
+          provider_template_id: string | null
+          status: string
+          updated_at: string
+          whatsapp_account_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          language_code: string
+          last_synced_at?: string | null
+          name: string
+          organization_id: string
+          provider_template_id?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_account_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          language_code?: string
+          last_synced_at?: string | null
+          name?: string
+          organization_id?: string
+          provider_template_id?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_message_templates_organization_id_whatsapp_accoun_fkey"
+            columns: ["organization_id", "whatsapp_account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      whatsapp_suppressions: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          reason: string
+          recipient_digest: string
+          revoked_at: string | null
+          whatsapp_account_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          reason: string
+          recipient_digest: string
+          revoked_at?: string | null
+          whatsapp_account_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          reason?: string
+          recipient_digest?: string
+          revoked_at?: string | null
+          whatsapp_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_suppressions_organization_id_whatsapp_account_id_fkey"
+            columns: ["organization_id", "whatsapp_account_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_accounts"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      accept_organization_invitation: {
+        Args: { p_token_digest: string }
+        Returns: string
+      }
       activate_private_attachment: {
         Args: {
           p_actual_size: number
@@ -2011,6 +2526,16 @@ export type Database = {
           updated_at: string
         }[]
       }
+      create_owner_organization: {
+        Args: {
+          p_display_name: string
+          p_name: string
+          p_reference_prefix: string
+          p_slug: string
+          p_trial_days?: number
+        }
+        Returns: string
+      }
       create_public_conversation: {
         Args: { p_organization_slug: string; p_token_digest: string }
         Returns: {
@@ -2127,6 +2652,15 @@ export type Database = {
           p_content: string
           p_conversation_id: string
           p_token_digest: string
+        }
+        Returns: boolean
+      }
+      record_whatsapp_opt_out: {
+        Args: {
+          p_organization_id: string
+          p_recipient_digest: string
+          p_trace_id: string
+          p_whatsapp_account_id: string
         }
         Returns: boolean
       }
@@ -2257,6 +2791,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      resolve_whatsapp_account: {
+        Args: {
+          p_phone_number_id: string
+          p_wa_id: string
+          p_whatsapp_business_account_id: string
+        }
+        Returns: {
+          account_id: string
+          billing_status: string
+          mode: string
+          organization_id: string
+          recipient_allowed: boolean
+        }[]
       }
       restore_whatsapp_conversation_access: {
         Args: { p_conversation_id: string; p_organization_id: string }

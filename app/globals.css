@@ -1602,3 +1602,115 @@ button:not(:disabled):hover {
     animation: none;
   }
 }
+
+.dashboard-stack,
+.stack-actions {
+  display: grid;
+  gap: 1rem;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.plain-list {
+  display: grid;
+  gap: 0.55rem;
+  padding-left: 1.2rem;
+}
+.plain-list li {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--blue-dark);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.row-actions,
+.row-actions form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.row-actions select {
+  min-height: 2.2rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+.inline-form {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.inline-form input,
+.inline-form select {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+.notice {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--blue-pale);
+  border-radius: 0.8rem;
+  background: var(--blue-soft);
+}
+.legal-page {
+  min-height: 100vh;
+  padding: clamp(1rem, 4vw, 4rem);
+  background: var(--page);
+}
+.legal-card {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 3rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.legal-card h2 {
+  margin-top: 1.8rem;
+}
+.legal-card p,
+.legal-card li {
+  line-height: 1.7;
+}
+
+@media (max-width: 720px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.settings-form {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 42rem;
+}
+
+.settings-form input,
+.settings-form select,
+.settings-form textarea {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  font: inherit;
+  padding: 0.7rem 0.8rem;
+}
+
+.auth-support-link {
+  margin-block: 1rem 0;
+  text-align: center;
+}

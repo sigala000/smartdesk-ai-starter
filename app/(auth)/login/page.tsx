@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { LoginForm } from "@/app/(auth)/login/login-form";
 import { resolveEmployeeAccess } from "@/lib/auth/access-context";
@@ -35,7 +36,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             You have signed out securely.
           </p>
         ) : null}
+        {status === "password-reset" ? (
+          <p className="status-message" role="status">
+            Your password was updated. Sign in with the new password.
+          </p>
+        ) : null}
         <LoginForm nextPath={sanitizeInternalRedirect(next)} />
+        <p className="auth-support-link">
+          <Link href="/forgot-password">Forgot your password?</Link>
+        </p>
       </section>
     </main>
   );

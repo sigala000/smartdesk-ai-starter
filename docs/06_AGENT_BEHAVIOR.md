@@ -349,3 +349,11 @@ Only after a successful tool result:
 The final sentence is permitted only after the handoff service confirms a
 persisted queued handoff. The assistant may say that a human has joined only
 after the backend reports the handoff as `active`.
+
+## Channel invariants
+
+The same instructions, deterministic fallback, structured draft, confirmation
+nonce, idempotency key, request service, and handoff service apply to web and
+WhatsApp. The model never selects an organization, Meta account, recipient, or
+billing state. WhatsApp opt-out commands are handled deterministically before
+agent orchestration and must not be argued with or overridden by model output.

@@ -60,6 +60,7 @@ function setup(
     markUnsupported: vi.fn(async () => undefined),
     recordSendResult: vi.fn(async () => true),
     updateStatus: vi.fn(async () => undefined),
+    recordOptOut: vi.fn(async () => true),
   } satisfies WhatsAppRepository;
   const context = {
     organizationId: "trusted-organization",
@@ -178,6 +179,7 @@ describe("WhatsApp channel service", () => {
     expect(fixture.sender.sendText).toHaveBeenCalledWith(
       "237600000001",
       "Which service?",
+      { organizationId: "trusted-organization", accountId: "trusted-account" },
     );
     expect(fixture.repository.recordSendResult).toHaveBeenCalledOnce();
   });
@@ -237,8 +239,19 @@ describe("WhatsApp channel service", () => {
       expect.any(String),
     );
     const foreign = { ...event, phoneNumberId: "99999999999" };
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
     await fixture.service.handle(foreign);
     expect(fixture.repository.ingest).toHaveBeenCalledTimes(1);
+    expect(info).toHaveBeenCalledWith(
+      "whatsapp_event_ignored",
+      expect.objectContaining({
+        code: "destination_mismatch",
+        phoneNumberMatches: false,
+        businessAccountMatches: true,
+        testRecipientMatches: true,
+      }),
+    );
+    info.mockRestore();
   });
 
   it("persists a provider failure and does not report delivery", async () => {
@@ -375,6 +388,26 @@ describe("WhatsApp channel service", () => {
       expect.any(String),
       "Confirm",
       expect.stringContaining("Please review your request"),
+    );
+  });
+
+  it("handles opt-out deterministically before agent invocation and stores only a digest", async () => {
+    const fixture = setup();
+    await expect(
+      fixture.service.handle({ ...event, text: "STOP" }),
+    ).resolves.toMatchObject({ delivered: true });
+    expect(fixture.repository.recordOptOut).toHaveBeenCalledWith(
+      "trusted-organization",
+      "trusted-account",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      expect.any(String),
+    );
+    expect(fixture.conversations.message).not.toHaveBeenCalled();
+    expect(fixture.conversations.recordChannelReply).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "STOP",
+      expect.stringContaining("opted out"),
     );
   });
 });

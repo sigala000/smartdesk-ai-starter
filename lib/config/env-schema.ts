@@ -30,6 +30,8 @@ const optionalInteger = (minimum: number, maximum: number) =>
 const publicEnvironmentSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalString,
+  NEXT_PUBLIC_META_APP_ID: optionalString,
+  NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID: optionalString,
 });
 
 const serverEnvironmentSchema = publicEnvironmentSchema.extend({
@@ -56,6 +58,9 @@ const serverEnvironmentSchema = publicEnvironmentSchema.extend({
   META_WHATSAPP_PHONE_NUMBER_ID: optionalString,
   META_WHATSAPP_BUSINESS_ACCOUNT_ID: optionalString,
   META_WHATSAPP_TEST_RECIPIENT: optionalString,
+  META_WHATSAPP_TEST_RECIPIENTS: optionalString,
+  META_CREDENTIAL_ENCRYPTION_KEY: optionalString,
+  META_CREDENTIAL_KEY_VERSION: optionalInteger(1, 32767),
   META_WHATSAPP_REQUEST_TIMEOUT_MS: optionalInteger(1000, 30_000),
   META_WHATSAPP_MAX_WEBHOOK_BYTES: optionalInteger(1024, 1_048_576),
   STATUS_VERIFICATION_ENABLED: optionalBoolean,
@@ -198,22 +203,31 @@ export function requireWhatsAppConfig(environment: ServerEnvironment) {
     "META_WHATSAPP_ACCESS_TOKEN",
     "META_WHATSAPP_PHONE_NUMBER_ID",
     "META_WHATSAPP_BUSINESS_ACCOUNT_ID",
-    "META_WHATSAPP_TEST_RECIPIENT",
   ] as const;
   const missing = required.filter((name) => !environment[name]);
   if (missing.length) throw new EnvironmentValidationError(missing);
   const version = environment.META_GRAPH_API_VERSION!;
   const phoneNumberId = environment.META_WHATSAPP_PHONE_NUMBER_ID!;
   const businessAccountId = environment.META_WHATSAPP_BUSINESS_ACCOUNT_ID!;
-  const recipient = environment.META_WHATSAPP_TEST_RECIPIENT!;
+  const recipientValues = [
+    ...(environment.META_WHATSAPP_TEST_RECIPIENTS?.split(",") ?? []),
+    environment.META_WHATSAPP_TEST_RECIPIENT,
+  ].filter((value): value is string => Boolean(value?.trim()));
+  const recipients = [
+    ...new Set(recipientValues.map((value) => value.trim().replace(/^\+/, ""))),
+  ];
   if (!/^v\d{1,2}\.\d$/.test(version))
     throw new EnvironmentValidationError(["META_GRAPH_API_VERSION"]);
   if (!/^\d{5,32}$/.test(phoneNumberId))
     throw new EnvironmentValidationError(["META_WHATSAPP_PHONE_NUMBER_ID"]);
   if (!/^\d{5,32}$/.test(businessAccountId))
     throw new EnvironmentValidationError(["META_WHATSAPP_BUSINESS_ACCOUNT_ID"]);
-  if (!/^\+\d{6,20}$/.test(recipient))
-    throw new EnvironmentValidationError(["META_WHATSAPP_TEST_RECIPIENT"]);
+  if (
+    recipients.length === 0 ||
+    recipients.length > 20 ||
+    recipients.some((value) => !/^\d{6,20}$/.test(value))
+  )
+    throw new EnvironmentValidationError(["META_WHATSAPP_TEST_RECIPIENTS"]);
   if (environment.META_APP_SECRET!.length < 16)
     throw new EnvironmentValidationError(["META_APP_SECRET"]);
   if (environment.META_WHATSAPP_VERIFY_TOKEN!.length < 32)
@@ -226,8 +240,57 @@ export function requireWhatsAppConfig(environment: ServerEnvironment) {
     accessToken: environment.META_WHATSAPP_ACCESS_TOKEN!,
     phoneNumberId,
     businessAccountId,
-    testRecipient: recipient.slice(1),
+    testRecipients: recipients,
     timeoutMs: environment.META_WHATSAPP_REQUEST_TIMEOUT_MS ?? 10_000,
     maxWebhookBytes: environment.META_WHATSAPP_MAX_WEBHOOK_BYTES ?? 262_144,
   };
+}
+
+export function requireMetaPlatformConfig(environment: ServerEnvironment) {
+  const missing = [
+    environment.META_GRAPH_API_VERSION ? null : "META_GRAPH_API_VERSION",
+    environment.META_APP_ID ? null : "META_APP_ID",
+    environment.META_APP_SECRET ? null : "META_APP_SECRET",
+    environment.META_WHATSAPP_VERIFY_TOKEN
+      ? null
+      : "META_WHATSAPP_VERIFY_TOKEN",
+  ].filter((value): value is string => value !== null);
+  if (
+    missing.length ||
+    !environment.META_GRAPH_API_VERSION ||
+    !environment.META_APP_ID ||
+    !environment.META_APP_SECRET ||
+    !environment.META_WHATSAPP_VERIFY_TOKEN
+  )
+    throw new EnvironmentValidationError(missing);
+  if (!/^v\d{1,2}\.\d$/.test(environment.META_GRAPH_API_VERSION))
+    throw new EnvironmentValidationError(["META_GRAPH_API_VERSION"]);
+  if (environment.META_APP_SECRET.length < 16)
+    throw new EnvironmentValidationError(["META_APP_SECRET"]);
+  if (environment.META_WHATSAPP_VERIFY_TOKEN.length < 32)
+    throw new EnvironmentValidationError(["META_WHATSAPP_VERIFY_TOKEN"]);
+  return {
+    graphApiVersion: environment.META_GRAPH_API_VERSION,
+    appId: environment.META_APP_ID,
+    appSecret: environment.META_APP_SECRET,
+    verifyToken: environment.META_WHATSAPP_VERIFY_TOKEN,
+    timeoutMs: environment.META_WHATSAPP_REQUEST_TIMEOUT_MS ?? 10_000,
+    maxWebhookBytes: environment.META_WHATSAPP_MAX_WEBHOOK_BYTES ?? 262_144,
+  };
+}
+
+export function requireMetaCredentialEncryptionConfig(
+  environment: ServerEnvironment,
+) {
+  const encoded = environment.META_CREDENTIAL_ENCRYPTION_KEY;
+  if (!encoded) return null;
+  let key: Buffer;
+  try {
+    key = Buffer.from(encoded, "base64url");
+  } catch {
+    throw new EnvironmentValidationError(["META_CREDENTIAL_ENCRYPTION_KEY"]);
+  }
+  if (key.length !== 32)
+    throw new EnvironmentValidationError(["META_CREDENTIAL_ENCRYPTION_KEY"]);
+  return { key, keyVersion: environment.META_CREDENTIAL_KEY_VERSION ?? 1 };
 }

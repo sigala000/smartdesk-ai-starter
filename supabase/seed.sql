@@ -1,7 +1,11 @@
 -- Production-safe reference data only. No users, customers, conversations, or requests.
-insert into public.organizations(id,name,slug,reference_prefix,timezone,default_language)
-values ('10000000-0000-4000-8000-000000000001','BuildPro Cameroon','buildpro-cameroon','BP','Africa/Douala','en')
-on conflict (id) do update set name=excluded.name,slug=excluded.slug,reference_prefix=excluded.reference_prefix,timezone=excluded.timezone,default_language=excluded.default_language;
+insert into public.organizations(id,name,slug,reference_prefix,timezone,default_language,lifecycle_status,onboarding_completed_at)
+values ('10000000-0000-4000-8000-000000000001','BuildPro Cameroon','buildpro-cameroon','BP','Africa/Douala','en','active','2026-08-06T00:00:00Z')
+on conflict (id) do update set name=excluded.name,slug=excluded.slug,reference_prefix=excluded.reference_prefix,timezone=excluded.timezone,default_language=excluded.default_language,lifecycle_status=excluded.lifecycle_status,onboarding_completed_at=excluded.onboarding_completed_at;
+
+insert into public.organization_subscriptions(organization_id,status,trial_started_at,trial_ends_at,feature_entitlements)
+values('10000000-0000-4000-8000-000000000001','active','2026-08-06T00:00:00Z','2126-08-06T00:00:00Z','{"web_chat":true,"employee_dashboard":true,"whatsapp":true}'::jsonb)
+on conflict (organization_id) do update set status=excluded.status,trial_ends_at=excluded.trial_ends_at,feature_entitlements=excluded.feature_entitlements;
 
 insert into public.departments(id,organization_id,name,description) values
 ('11000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Commercial Department','Handles customer enquiries and quotation follow-up.'),

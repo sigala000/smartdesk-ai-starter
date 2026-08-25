@@ -10,6 +10,7 @@ export default function HomePage() {
         </Link>
         <div className="landing-nav-links">
           <Link href="/status">Track a request</Link>
+          <Link href="/register">Create a company</Link>
           <Link className="button button-quiet" href="/login">
             Employee portal
           </Link>

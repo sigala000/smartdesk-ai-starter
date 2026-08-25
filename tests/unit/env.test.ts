@@ -48,7 +48,7 @@ describe("environment validation", () => {
     ).toMatchObject({
       graphApiVersion: "v99.0",
       phoneNumberId: "12345678901",
-      testRecipient: "237600000001",
+      testRecipients: ["237600000001"],
     });
   });
 

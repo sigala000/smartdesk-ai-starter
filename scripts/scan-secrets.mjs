@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 
-const tracked = execFileSync(
+const candidates = execFileSync(
   "git",
   ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
   { encoding: "utf8" },
@@ -32,7 +32,7 @@ function containsPrivilegedJwt(content) {
   }
   return false;
 }
-for (const file of tracked) {
+for (const file of candidates) {
   if (!existsSync(file) || !statSync(file).isFile()) continue;
   const content = readFileSync(file, "utf8");
   for (const [pattern, label] of patterns)
@@ -65,4 +65,6 @@ if (findings.length) {
   console.error("Secret scan failed:\n" + findings.join("\n"));
   process.exit(1);
 }
-console.log(`Secret scan passed (${tracked.length} tracked files checked).`);
+console.log(
+  `Secret scan passed (${candidates.length} tracked and untracked candidate files checked).`,
+);

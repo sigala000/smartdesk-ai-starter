@@ -316,3 +316,19 @@ Before real customer deployment:
 - Development mock mode and code exposure are rejected in production.
 - Public status output excludes internal notes, priorities, raw history,
   customer contact data, assignments, and employee details.
+
+## Phase 10 tenant onboarding and Meta controls
+
+- Owner tenant creation requires a Supabase session and atomically creates the
+  first admin membership and trial.
+- Onboarding tenants cannot open customer web/WhatsApp conversations.
+- Embedded Signup state is digest-only, ten-minute, one-use, and bound to
+  member, tenant, and origin.
+- Meta credentials use AES-256-GCM with tenant/account associated data and a
+  versioned 32-byte server key. Credential rows are service-role-only.
+- Destination phone/WABA assets are globally unique; test accounts additionally
+  require an active recipient allowlist.
+- SmartDesk never accepts Meta OTPs or payment cards. Meta bills clients
+  directly and SmartDesk records only connection/capability state.
+- Trial/subscription entitlements are enforced on the server/database, not by
+  hidden navigation.
