@@ -362,7 +362,7 @@ printed. Meta portal/App Review/legal/payment actions remain manual.
 - [x] Milestone G: trial/subscription foundation.
 - [x] Milestone H: production WhatsApp operations foundation.
 - [x] Milestone I: company administration UI.
-- [ ] Milestone J: automated/local/hosted verification, documentation, release,
+- [x] Milestone J: automated/local/hosted verification, documentation, release,
   deployment, commit, and push.
 
 ## Decision log
@@ -477,3 +477,13 @@ broad production readiness.
   `META_CREDENTIAL_ENCRYPTION_KEY`, and `META_CREDENTIAL_KEY_VERSION=1` were
   configured directly without printing values. The external Embedded Signup
   configuration ID remains unavailable and is the remaining feature gate.
+- Git commit `7dbc613c74ec91b0d28d34d636cbda1c98cf5690` was pushed to
+  `origin/main`. Vercel production deployment
+  `dpl_CrTDnCqduNtUUgMasGj9bfwLuABw` reached `Ready` and the stable alias is
+  `https://smartdesk-ai-starter-khaki.vercel.app`.
+- Hosted smoke checks passed for the home, registration, login, privacy, and
+  BuildPro chat pages; unauthenticated Meta onboarding returned 401; a spoofed
+  webhook returned 401; and valid webhook verification returned its challenge.
+  No hosted customer/request fixture was created. Authenticated owner/employee
+  and real Meta Embedded Signup round trips remain manual gates requiring real
+  verified accounts and the missing Meta configuration ID.
