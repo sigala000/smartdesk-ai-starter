@@ -32,3 +32,19 @@ export function sanitizeInternalRedirect(
     return "/dashboard";
   }
 }
+
+export function resolveMembershipRequiredRedirect(
+  value: string | null | undefined,
+): string {
+  const destination = sanitizeInternalRedirect(value);
+
+  if (
+    destination === "/onboarding" ||
+    destination === "/invite/accept" ||
+    destination.startsWith("/invite/accept?")
+  ) {
+    return destination;
+  }
+
+  return "/onboarding";
+}

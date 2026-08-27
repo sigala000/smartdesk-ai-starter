@@ -130,9 +130,6 @@ async function run() {
       "Route-test employee could not be provisioned",
     );
     userId = created.user.id;
-    databaseExec(
-      `insert into public.organization_members(organization_id,user_id,display_name,role) values ('${buildProOrganizationId}','${userId}','Route Test Viewer','viewer');`,
-    );
 
     app = spawn(
       process.execPath,
@@ -180,6 +177,21 @@ async function run() {
     });
     assert(!loginError && sessionCookies.length > 0, "Route-test login failed");
 
+    const onboarding = await request(
+      "/login?next=%2Fonboarding",
+      sessionCookies,
+    );
+    await assertRedirect(onboarding, "/onboarding");
+    const dashboardWithoutMembership = await request(
+      "/login?next=%2Fdashboard",
+      sessionCookies,
+    );
+    await assertRedirect(dashboardWithoutMembership, "/onboarding");
+
+    databaseExec(
+      `insert into public.organization_members(organization_id,user_id,display_name,role) values ('${buildProOrganizationId}','${userId}','Route Test Viewer','viewer');`,
+    );
+
     const dashboard = await request("/dashboard", sessionCookies);
     assert(
       dashboard.status === 200,
@@ -216,7 +228,7 @@ async function run() {
       "/unauthorized?reason=membership_required",
     );
 
-    console.log("Protected route integration: 9 checks passed");
+    console.log("Protected route integration: 11 checks passed");
   } finally {
     if (app && app.exitCode === null) {
       app.kill("SIGTERM");

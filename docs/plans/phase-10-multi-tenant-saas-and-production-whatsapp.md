@@ -346,6 +346,12 @@ printed. Meta portal/App Review/legal/payment actions remain manual.
 
 ## Progress log
 
+- [x] 2026-08-27 follow-up: corrected post-login routing so a verified owner
+  with no membership retains the server-validated session and reaches tenant
+  onboarding; dashboard access still requires one active membership, other
+  access failures still clear the session, and invitation return paths remain
+  narrowly allowlisted.
+
 - [x] Read the attached Phase 10 authorization and repository instructions.
 - [x] Inspect the documentation inventory, completed plans, Git baseline,
   package scripts, environment validation, application structure, Supabase
@@ -366,6 +372,12 @@ printed. Meta portal/App Review/legal/payment actions remain manual.
   deployment, commit, and push.
 
 ## Decision log
+
+- 2026-08-27: `membership_required` has two legitimate pre-dashboard uses:
+  first-owner onboarding and invitation acceptance. It may retain the verified
+  session only for those allowlisted routes; it never authorizes dashboard or
+  tenant data access. The database remains authoritative and refuses owner
+  creation when any membership already exists.
 
 - 2026-08-25: Phase 10 explicitly supersedes the earlier MVP decision that
   production WhatsApp was out of scope. It does not supersede confirmation,

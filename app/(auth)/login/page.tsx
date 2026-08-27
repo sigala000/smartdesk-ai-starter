@@ -3,7 +3,10 @@ import Link from "next/link";
 
 import { LoginForm } from "@/app/(auth)/login/login-form";
 import { resolveEmployeeAccess } from "@/lib/auth/access-context";
-import { sanitizeInternalRedirect } from "@/lib/auth/login-schema";
+import {
+  resolveMembershipRequiredRedirect,
+  sanitizeInternalRedirect,
+} from "@/lib/auth/login-schema";
 import { createClient } from "@/lib/supabase/server";
 
 type LoginPageProps = Readonly<{
@@ -11,12 +14,16 @@ type LoginPageProps = Readonly<{
 }>;
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { next, status } = await searchParams;
   const supabase = await createClient();
   const access = await resolveEmployeeAccess(supabase);
   if (access.ok) redirect("/dashboard");
-  if (access.authenticated) redirect(`/unauthorized?reason=${access.code}`);
-
-  const { next, status } = await searchParams;
+  if (access.authenticated) {
+    if (access.code === "membership_required") {
+      redirect(resolveMembershipRequiredRedirect(next));
+    }
+    redirect(`/unauthorized?reason=${access.code}`);
+  }
 
   return (
     <main className="auth-page">

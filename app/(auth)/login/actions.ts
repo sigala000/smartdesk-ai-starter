@@ -3,7 +3,11 @@
 import { redirect } from "next/navigation";
 
 import { resolveEmployeeAccess } from "@/lib/auth/access-context";
-import { loginSchema, sanitizeInternalRedirect } from "@/lib/auth/login-schema";
+import {
+  loginSchema,
+  resolveMembershipRequiredRedirect,
+  sanitizeInternalRedirect,
+} from "@/lib/auth/login-schema";
 import { clearEmployeeSession } from "@/lib/auth/sign-out";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,6 +49,9 @@ export async function login(
 
   const access = await resolveEmployeeAccess(supabase);
   if (!access.ok) {
+    if (access.code === "membership_required") {
+      redirect(resolveMembershipRequiredRedirect(parsed.data.next));
+    }
     const cleared = await clearEmployeeSession((options) =>
       supabase.auth.signOut(options),
     );

@@ -13,6 +13,7 @@ export default async function OnboardingPage() {
     .eq("user_id", data.user.id)
     .eq("is_active", true)
     .limit(1);
+  if (memberships.error) redirect("/unauthorized?reason=internal_error");
   if (memberships.data?.length) redirect("/dashboard/organization");
   const displayName =
     typeof data.user.user_metadata.full_name === "string"

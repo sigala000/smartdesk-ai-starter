@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, sanitizeInternalRedirect } from "@/lib/auth/login-schema";
+import {
+  loginSchema,
+  resolveMembershipRequiredRedirect,
+  sanitizeInternalRedirect,
+} from "@/lib/auth/login-schema";
 
 describe("login input", () => {
   it("normalizes a valid employee email", () => {
@@ -37,5 +41,20 @@ describe("login input", () => {
     ]) {
       expect(sanitizeInternalRedirect(unsafe)).toBe("/dashboard");
     }
+  });
+
+  it("routes authenticated non-members only to onboarding or invitation acceptance", () => {
+    expect(resolveMembershipRequiredRedirect("/onboarding")).toBe(
+      "/onboarding",
+    );
+    expect(
+      resolveMembershipRequiredRedirect("/invite/accept?token=opaque-token"),
+    ).toBe("/invite/accept?token=opaque-token");
+    expect(resolveMembershipRequiredRedirect("/dashboard/requests")).toBe(
+      "/onboarding",
+    );
+    expect(
+      resolveMembershipRequiredRedirect("https://attacker.example/onboarding"),
+    ).toBe("/onboarding");
   });
 });
