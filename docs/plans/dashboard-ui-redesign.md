@@ -95,7 +95,7 @@ rendered controls have working destinations/actions.
 - [x] Redesign shared shell and navigation.
 - [x] Redesign the four referenced pages.
 - [x] Run all checks and visually verify.
-- [ ] Deploy the reviewed result.
+- [x] Deploy the reviewed result.
 
 ## Decision log
 
@@ -111,5 +111,6 @@ rendered controls have working destinations/actions.
 
 Implemented the shared shell and the four referenced dashboard areas. Browser
 verification covered 1440px desktop and 390px mobile layouts, navigation, and
-document overflow. Lint, strict type checking, 171 unit/integration tests, and
-the production build pass. Deployment remains pending.
+document overflow. Lint, strict type checking, 171 unit/integration tests, 16
+browser tests, and the production build pass. Commit `b6f8f8d` deployed
+successfully to the production Vercel alias on 2026-08-27.
