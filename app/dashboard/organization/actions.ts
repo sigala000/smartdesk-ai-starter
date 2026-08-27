@@ -2,6 +2,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requirePermission } from "@/lib/auth/require-access";
 import { serverEnvironment } from "@/lib/config/env-server";
@@ -11,6 +12,10 @@ const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 const clean = (value: FormDataEntryValue | null, maximum: number) =>
   typeof value === "string" ? value.trim().slice(0, maximum) : "";
+function finish(result: string): never {
+  revalidatePath("/dashboard/organization");
+  redirect(`/dashboard/organization?result=${encodeURIComponent(result)}`);
+}
 
 export async function addDepartment(formData: FormData) {
   const access = await requirePermission(
@@ -18,11 +23,11 @@ export async function addDepartment(formData: FormData) {
     "/dashboard/organization",
   );
   const name = clean(formData.get("name"), 120);
-  if (name.length < 2) return;
-  await createAdminClient()
+  if (name.length < 2) finish("department_invalid");
+  const created = await createAdminClient()
     .from("departments")
     .insert({ organization_id: access.organization.id, name, is_active: true });
-  revalidatePath("/dashboard/organization");
+  finish(created.error ? "department_failed" : "department_added");
 }
 
 export async function addService(formData: FormData) {
@@ -32,7 +37,8 @@ export async function addService(formData: FormData) {
   );
   const name = clean(formData.get("name"), 160);
   const departmentId = clean(formData.get("departmentId"), 36);
-  if (name.length < 2 || !/^[0-9a-f-]{36}$/i.test(departmentId)) return;
+  if (name.length < 2 || !/^[0-9a-f-]{36}$/i.test(departmentId))
+    finish("service_invalid");
   const department = await createAdminClient()
     .from("departments")
     .select("id")
@@ -40,14 +46,14 @@ export async function addService(formData: FormData) {
     .eq("id", departmentId)
     .eq("is_active", true)
     .maybeSingle();
-  if (!department.data) return;
-  await createAdminClient().from("services").insert({
+  if (!department.data) finish("service_department_invalid");
+  const created = await createAdminClient().from("services").insert({
     organization_id: access.organization.id,
     department_id: departmentId,
     name,
     is_active: true,
   });
-  revalidatePath("/dashboard/organization");
+  finish(created.error ? "service_failed" : "service_added");
 }
 
 export async function inviteEmployee(formData: FormData) {
@@ -69,7 +75,8 @@ export async function inviteEmployee(formData: FormData) {
       "viewer",
     ].includes(role)
   )
-    return;
+    finish("invitation_invalid");
+  if (email === access.user.email?.toLowerCase()) finish("invitation_self");
   const token = randomBytes(32).toString("base64url");
   const admin = createAdminClient();
   const [subscription, memberCount] = await Promise.all([
@@ -88,7 +95,7 @@ export async function inviteEmployee(formData: FormData) {
     subscription.data?.seat_limit &&
     (memberCount.count ?? 0) >= subscription.data.seat_limit
   )
-    return;
+    finish("seat_limit_reached");
   const invitation = await admin
     .from("organization_invitations")
     .insert({
@@ -101,21 +108,30 @@ export async function inviteEmployee(formData: FormData) {
     })
     .select("id")
     .single();
-  if (!invitation.data) return;
+  if (!invitation.data) finish("invitation_failed");
+  const invitationId = invitation.data.id;
   await admin.from("audit_events").insert({
     organization_id: access.organization.id,
     actor_member_id: access.membership.id,
     action: "organization.invitation_created",
     entity_type: "organization_invitation",
-    entity_id: invitation.data.id,
+    entity_id: invitationId,
     metadata: { role },
   });
   const base = serverEnvironment.APP_BASE_URL;
-  if (base)
-    await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${new URL(base).origin}/invite/accept?token=${encodeURIComponent(token)}`,
-    });
-  revalidatePath("/dashboard/organization");
+  if (!base) finish("invitation_delivery_failed");
+  const invitationRedirect = `${new URL(base).origin}/invite/accept?token=${encodeURIComponent(token)}`;
+  const delivery = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: invitationRedirect,
+  });
+  if (delivery.error) {
+    await admin
+      .from("organization_invitations")
+      .update({ status: "revoked" })
+      .eq("id", invitationId);
+    finish("invitation_delivery_failed");
+  }
+  finish("invitation_sent");
 }
 
 export async function updateOrganizationProfile(formData: FormData) {
@@ -130,11 +146,12 @@ export async function updateOrganizationProfile(formData: FormData) {
   const address = clean(formData.get("businessAddress"), 500);
   const country = clean(formData.get("countryCode"), 2).toUpperCase();
   const language = clean(formData.get("defaultLanguage"), 2);
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return;
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
+    finish("profile_invalid");
   if (website && (!website.startsWith("https://") || website.length > 300))
-    return;
-  if (country && !/^[A-Z]{2}$/.test(country)) return;
-  if (!["en", "fr"].includes(language)) return;
+    finish("profile_invalid");
+  if (country && !/^[A-Z]{2}$/.test(country)) finish("profile_invalid");
+  if (!["en", "fr"].includes(language)) finish("profile_invalid");
   const admin = createAdminClient();
   const updated = await admin
     .from("organizations")
@@ -150,6 +167,7 @@ export async function updateOrganizationProfile(formData: FormData) {
     .eq("id", access.organization.id)
     .select("id")
     .maybeSingle();
+  if (!updated.data) finish("profile_failed");
   if (updated.data)
     await admin.from("audit_events").insert({
       organization_id: access.organization.id,
@@ -159,7 +177,7 @@ export async function updateOrganizationProfile(formData: FormData) {
       entity_id: access.organization.id,
       metadata: { default_language: language },
     });
-  revalidatePath("/dashboard/organization");
+  finish("profile_saved");
 }
 
 export async function completeOnboarding() {
@@ -180,7 +198,7 @@ export async function completeOnboarding() {
       .eq("organization_id", access.organization.id)
       .eq("is_active", true),
   ]);
-  if (!departments.count || !services.count) return;
+  if (!departments.count || !services.count) finish("setup_incomplete");
   const updated = await admin
     .from("organizations")
     .update({
@@ -190,6 +208,7 @@ export async function completeOnboarding() {
     .eq("id", access.organization.id)
     .select("id")
     .maybeSingle();
+  if (!updated.data) finish("activation_failed");
   if (updated.data)
     await admin.from("audit_events").insert({
       organization_id: access.organization.id,
@@ -198,7 +217,7 @@ export async function completeOnboarding() {
       entity_type: "organization",
       entity_id: access.organization.id,
     });
-  revalidatePath("/dashboard/organization");
+  finish("workspace_activated");
 }
 
 export async function setCatalogueState(formData: FormData) {
@@ -213,13 +232,15 @@ export async function setCatalogueState(formData: FormData) {
     !/^[0-9a-f-]{36}$/i.test(id) ||
     (kind !== "service" && kind !== "department")
   )
-    return;
-  await createAdminClient()
+    finish("catalogue_invalid");
+  const updated = await createAdminClient()
     .from(kind === "service" ? "services" : "departments")
     .update({ is_active: active })
     .eq("organization_id", access.organization.id)
-    .eq("id", id);
-  revalidatePath("/dashboard/organization");
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  finish(updated.data ? "catalogue_updated" : "catalogue_failed");
 }
 
 export async function setMemberState(formData: FormData) {
@@ -229,7 +250,8 @@ export async function setMemberState(formData: FormData) {
   );
   const id = clean(formData.get("id"), 36);
   const active = formData.get("active") === "true";
-  if (!/^[0-9a-f-]{36}$/i.test(id) || id === access.membership.id) return;
+  if (!/^[0-9a-f-]{36}$/i.test(id) || id === access.membership.id)
+    finish("member_invalid");
   const admin = createAdminClient();
   const target = await admin
     .from("organization_members")
@@ -237,15 +259,16 @@ export async function setMemberState(formData: FormData) {
     .eq("organization_id", access.organization.id)
     .eq("id", id)
     .maybeSingle();
-  if (!target.data) return;
-  if (!active && target.data.role === "admin") {
+  if (!target.data) finish("member_invalid");
+  const targetMember = target.data;
+  if (!active && targetMember.role === "admin") {
     const activeAdmins = await admin
       .from("organization_members")
       .select("id", { count: "exact", head: true })
       .eq("organization_id", access.organization.id)
       .eq("role", "admin")
       .eq("is_active", true);
-    if ((activeAdmins.count ?? 0) <= 1) return;
+    if ((activeAdmins.count ?? 0) <= 1) finish("last_admin_required");
   }
   const updated = await admin
     .from("organization_members")
@@ -254,6 +277,7 @@ export async function setMemberState(formData: FormData) {
     .eq("id", id)
     .select("id")
     .maybeSingle();
+  if (!updated.data) finish("member_failed");
   if (updated.data)
     await admin.from("audit_events").insert({
       organization_id: access.organization.id,
@@ -264,7 +288,7 @@ export async function setMemberState(formData: FormData) {
       entity_type: "organization_member",
       entity_id: id,
     });
-  revalidatePath("/dashboard/organization");
+  finish(active ? "member_activated" : "member_deactivated");
 }
 
 export async function setMemberRole(formData: FormData) {
@@ -288,7 +312,7 @@ export async function setMemberRole(formData: FormData) {
     id === access.membership.id ||
     !roles.includes(role)
   )
-    return;
+    finish("member_invalid");
   const admin = createAdminClient();
   const target = await admin
     .from("organization_members")
@@ -296,11 +320,12 @@ export async function setMemberRole(formData: FormData) {
     .eq("organization_id", access.organization.id)
     .eq("id", id)
     .maybeSingle();
-  if (!target.data) return;
+  if (!target.data) finish("member_invalid");
+  const targetMember = target.data;
   if (
-    target.data.role === "admin" &&
+    targetMember.role === "admin" &&
     role !== "admin" &&
-    target.data.is_active
+    targetMember.is_active
   ) {
     const activeAdmins = await admin
       .from("organization_members")
@@ -308,7 +333,7 @@ export async function setMemberRole(formData: FormData) {
       .eq("organization_id", access.organization.id)
       .eq("role", "admin")
       .eq("is_active", true);
-    if ((activeAdmins.count ?? 0) <= 1) return;
+    if ((activeAdmins.count ?? 0) <= 1) finish("last_admin_required");
   }
   const updated = await admin
     .from("organization_members")
@@ -317,6 +342,7 @@ export async function setMemberRole(formData: FormData) {
     .eq("id", id)
     .select("id")
     .maybeSingle();
+  if (!updated.data) finish("member_failed");
   if (updated.data)
     await admin.from("audit_events").insert({
       organization_id: access.organization.id,
@@ -324,9 +350,9 @@ export async function setMemberRole(formData: FormData) {
       action: "organization.member_role_updated",
       entity_type: "organization_member",
       entity_id: id,
-      metadata: { previous_role: target.data.role, role },
+      metadata: { previous_role: targetMember.role, role },
     });
-  revalidatePath("/dashboard/organization");
+  finish("member_role_updated");
 }
 
 export async function revokeInvitation(formData: FormData) {
@@ -335,7 +361,7 @@ export async function revokeInvitation(formData: FormData) {
     "/dashboard/organization",
   );
   const id = clean(formData.get("id"), 36);
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) finish("invitation_invalid");
   const admin = createAdminClient();
   const updated = await admin
     .from("organization_invitations")
@@ -345,6 +371,7 @@ export async function revokeInvitation(formData: FormData) {
     .eq("status", "pending")
     .select("id")
     .maybeSingle();
+  if (!updated.data) finish("invitation_failed");
   if (updated.data)
     await admin.from("audit_events").insert({
       organization_id: access.organization.id,
@@ -353,5 +380,5 @@ export async function revokeInvitation(formData: FormData) {
       entity_type: "organization_invitation",
       entity_id: id,
     });
-  revalidatePath("/dashboard/organization");
+  finish("invitation_revoked");
 }

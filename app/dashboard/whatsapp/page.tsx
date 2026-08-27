@@ -1,6 +1,7 @@
 import { EmbeddedSignupButton } from "@/components/whatsapp/embedded-signup-button";
 import { DisconnectWhatsAppButton } from "@/components/whatsapp/disconnect-button";
 import { requirePermission } from "@/lib/auth/require-access";
+import { serverEnvironment } from "@/lib/config/env-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 function maskPhone(value: string | null) {
@@ -25,6 +26,13 @@ export default async function WhatsAppSettingsPage() {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  const embeddedSignupConfigured = Boolean(
+    serverEnvironment.NEXT_PUBLIC_META_APP_ID &&
+    serverEnvironment.NEXT_PUBLIC_META_APP_ID ===
+      serverEnvironment.META_APP_ID &&
+    serverEnvironment.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID &&
+    serverEnvironment.APP_BASE_URL,
+  );
   return (
     <section className="dashboard-stack" aria-labelledby="whatsapp-title">
       <div className="dashboard-card">
@@ -86,7 +94,8 @@ export default async function WhatsAppSettingsPage() {
                 . Meta billing is separate from SmartDesk billing.
               </p>
             ) : null}
-            {[
+            {embeddedSignupConfigured &&
+            [
               "connected",
               "active",
               "test_pending",
@@ -94,8 +103,14 @@ export default async function WhatsAppSettingsPage() {
               "billing_required",
             ].includes(account.data.connection_status) ? (
               <DisconnectWhatsAppButton />
-            ) : (
+            ) : embeddedSignupConfigured ? (
               <EmbeddedSignupButton />
+            ) : (
+              <p className="form-error" role="alert">
+                Meta Embedded Signup is not configured by the SmartDesk operator
+                yet. Your company account is working; WhatsApp connection will
+                become available after the Meta configuration ID is installed.
+              </p>
             )}
           </>
         ) : (
@@ -107,7 +122,16 @@ export default async function WhatsAppSettingsPage() {
             </p>
           </>
         )}
-        {!account.data ? <EmbeddedSignupButton /> : null}
+        {!account.data && embeddedSignupConfigured ? (
+          <EmbeddedSignupButton />
+        ) : null}
+        {!account.data && !embeddedSignupConfigured ? (
+          <p className="form-error" role="alert">
+            Meta Embedded Signup is not configured by the SmartDesk operator
+            yet. Your company account is working; WhatsApp connection will
+            become available after the Meta configuration ID is installed.
+          </p>
+        ) : null}
       </div>
       <div className="dashboard-card">
         <h2>How billing works</h2>

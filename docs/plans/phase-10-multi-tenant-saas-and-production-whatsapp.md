@@ -346,6 +346,12 @@ printed. Meta portal/App Review/legal/payment actions remain manual.
 
 ## Progress log
 
+- [x] 2026-08-27 follow-up: replaced silent organization-management action
+  failures with explicit validation/database outcomes, pending button states,
+  and accessible success/error feedback; rejected self-invitations and revoke
+  undeliverable invitation records. The WhatsApp page now distinguishes a
+  missing operator-owned Meta Configuration ID from a broken company account
+  instead of rendering an action that is known to fail.
 - [x] 2026-08-27 follow-up: corrected post-login routing so a verified owner
   with no membership retains the server-validated session and reaches tenant
   onboarding; dashboard access still requires one active membership, other

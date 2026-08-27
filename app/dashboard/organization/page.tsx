@@ -10,11 +10,98 @@ import {
   updateOrganizationProfile,
 } from "./actions";
 
+import { SubmitButton } from "@/components/forms/submit-button";
 import { requirePermission } from "@/lib/auth/require-access";
 import { can } from "@/lib/auth/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export default async function OrganizationPage() {
+const resultMessages: Readonly<
+  Record<string, Readonly<{ tone: "success" | "error"; text: string }>>
+> = {
+  activation_failed: { tone: "error", text: "Workspace activation failed." },
+  catalogue_failed: { tone: "error", text: "That catalogue change failed." },
+  catalogue_invalid: { tone: "error", text: "That catalogue item is invalid." },
+  catalogue_updated: { tone: "success", text: "Catalogue updated." },
+  department_added: { tone: "success", text: "Department added." },
+  department_failed: {
+    tone: "error",
+    text: "The department could not be added. It may already exist.",
+  },
+  department_invalid: {
+    tone: "error",
+    text: "Enter a department name of at least two characters.",
+  },
+  invitation_delivery_failed: {
+    tone: "error",
+    text: "The invitation email could not be delivered. Check the address and email configuration.",
+  },
+  invitation_failed: {
+    tone: "error",
+    text: "The invitation could not be updated.",
+  },
+  invitation_invalid: {
+    tone: "error",
+    text: "Enter a valid employee email and role.",
+  },
+  invitation_revoked: { tone: "success", text: "Invitation revoked." },
+  invitation_self: {
+    tone: "error",
+    text: "This email already belongs to your administrator account.",
+  },
+  invitation_sent: { tone: "success", text: "Invitation sent." },
+  last_admin_required: {
+    tone: "error",
+    text: "The workspace must retain at least one active administrator.",
+  },
+  member_activated: { tone: "success", text: "Employee activated." },
+  member_deactivated: { tone: "success", text: "Employee deactivated." },
+  member_failed: { tone: "error", text: "The employee change failed." },
+  member_invalid: {
+    tone: "error",
+    text: "That employee change is not allowed.",
+  },
+  member_role_updated: { tone: "success", text: "Employee role updated." },
+  profile_failed: {
+    tone: "error",
+    text: "The company profile could not be saved.",
+  },
+  profile_invalid: {
+    tone: "error",
+    text: "Review the profile fields. Websites must use HTTPS and country codes use two letters.",
+  },
+  profile_saved: { tone: "success", text: "Company profile saved." },
+  seat_limit_reached: {
+    tone: "error",
+    text: "The active-seat limit has been reached.",
+  },
+  service_added: { tone: "success", text: "Service added." },
+  service_department_invalid: {
+    tone: "error",
+    text: "Choose an active department for this service.",
+  },
+  service_failed: {
+    tone: "error",
+    text: "The service could not be added. It may already exist.",
+  },
+  service_invalid: {
+    tone: "error",
+    text: "Enter a service name and choose a department.",
+  },
+  setup_incomplete: {
+    tone: "error",
+    text: "Add at least one active department and service before activation.",
+  },
+  workspace_activated: {
+    tone: "success",
+    text: "Workspace activated. Customer channels can now be configured.",
+  },
+};
+
+export default async function OrganizationPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ result?: string }> }>) {
+  const { result } = await searchParams;
+  const feedback = result ? resultMessages[result] : undefined;
   const access = await requirePermission(
     "organization:view",
     "/dashboard/organization",
@@ -87,6 +174,14 @@ export default async function OrganizationPage() {
   );
   return (
     <section className="dashboard-stack" aria-labelledby="organization-title">
+      {feedback ? (
+        <p
+          className={feedback.tone === "error" ? "form-error" : "notice"}
+          role={feedback.tone === "error" ? "alert" : "status"}
+        >
+          {feedback.text}
+        </p>
+      ) : null}
       <div className="dashboard-card">
         <p className="eyebrow">Organization profile</p>
         <h1 id="organization-title">{access.organization.name}</h1>
@@ -149,9 +244,12 @@ export default async function OrganizationPage() {
             </p>
             {manage && configured ? (
               <form action={completeOnboarding}>
-                <button className="button-primary" type="submit">
+                <SubmitButton
+                  className="button-primary"
+                  pendingLabel="Activating…"
+                >
                   Activate workspace
-                </button>
+                </SubmitButton>
               </form>
             ) : null}
           </div>
@@ -214,9 +312,9 @@ export default async function OrganizationPage() {
               <option value="en">English</option>
               <option value="fr">Français</option>
             </select>
-            <button className="button-secondary" type="submit">
+            <SubmitButton className="button-secondary" pendingLabel="Saving…">
               Save profile
-            </button>
+            </SubmitButton>
           </form>
         </div>
       ) : null}
@@ -238,9 +336,12 @@ export default async function OrganizationPage() {
                       type="hidden"
                       value={item.is_active ? "false" : "true"}
                     />
-                    <button className="text-button" type="submit">
+                    <SubmitButton
+                      className="text-button"
+                      pendingLabel="Updating…"
+                    >
                       {item.is_active ? "Deactivate" : "Activate"}
-                    </button>
+                    </SubmitButton>
                   </form>
                 ) : null}
               </li>
@@ -255,9 +356,9 @@ export default async function OrganizationPage() {
                 required
                 maxLength={120}
               />
-              <button className="button-secondary" type="submit">
+              <SubmitButton className="button-secondary" pendingLabel="Adding…">
                 Add
-              </button>
+              </SubmitButton>
             </form>
           ) : null}
         </article>
@@ -277,9 +378,12 @@ export default async function OrganizationPage() {
                       type="hidden"
                       value={item.is_active ? "false" : "true"}
                     />
-                    <button className="text-button" type="submit">
+                    <SubmitButton
+                      className="text-button"
+                      pendingLabel="Updating…"
+                    >
                       {item.is_active ? "Deactivate" : "Activate"}
-                    </button>
+                    </SubmitButton>
                   </form>
                 ) : null}
               </li>
@@ -299,9 +403,9 @@ export default async function OrganizationPage() {
                     </option>
                   ))}
               </select>
-              <button className="button-secondary" type="submit">
+              <SubmitButton className="button-secondary" pendingLabel="Adding…">
                 Add
-              </button>
+              </SubmitButton>
             </form>
           ) : null}
         </article>
@@ -338,9 +442,12 @@ export default async function OrganizationPage() {
                       <option value="manager">Manager</option>
                       <option value="admin">Administrator</option>
                     </select>
-                    <button className="text-button" type="submit">
+                    <SubmitButton
+                      className="text-button"
+                      pendingLabel="Updating…"
+                    >
                       Update role
-                    </button>
+                    </SubmitButton>
                   </form>
                   <form action={setMemberState}>
                     <input name="id" type="hidden" value={item.id} />
@@ -349,9 +456,12 @@ export default async function OrganizationPage() {
                       type="hidden"
                       value={item.is_active ? "false" : "true"}
                     />
-                    <button className="text-button" type="submit">
+                    <SubmitButton
+                      className="text-button"
+                      pendingLabel="Updating…"
+                    >
                       {item.is_active ? "Deactivate" : "Reactivate"}
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               ) : null}
@@ -371,9 +481,9 @@ export default async function OrganizationPage() {
               <option value="project_manager">Project manager</option>
               <option value="manager">Manager</option>
             </select>
-            <button className="button-secondary" type="submit">
+            <SubmitButton className="button-secondary" pendingLabel="Sending…">
               Send invitation
-            </button>
+            </SubmitButton>
           </form>
         ) : null}
         {can(access.membership.role, "members:manage") ? (
@@ -389,9 +499,12 @@ export default async function OrganizationPage() {
                   {item.status === "pending" ? (
                     <form action={revokeInvitation}>
                       <input name="id" type="hidden" value={item.id} />
-                      <button className="text-button" type="submit">
+                      <SubmitButton
+                        className="text-button"
+                        pendingLabel="Revoking…"
+                      >
                         Revoke
-                      </button>
+                      </SubmitButton>
                     </form>
                   ) : null}
                 </li>
