@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DashboardIcon } from "@/components/dashboard/dashboard-icon";
 import { requireEmployeeAccess } from "@/lib/auth/require-access";
 
 export default async function DashboardPage() {
@@ -10,9 +11,7 @@ export default async function DashboardPage() {
       <header className="overview-header">
         <div>
           <p className="eyebrow">Operations overview</p>
-          <h1 id="dashboard-title">
-            Good day, {access.membership.displayName}
-          </h1>
+          <h1 id="dashboard-title">Good day, {access.organization.name}</h1>
           <p>
             Review customer requests, respond to handoffs, and keep BuildPro
             work moving from one secure workspace.
@@ -25,7 +24,7 @@ export default async function DashboardPage() {
       <div className="overview-grid">
         <Link className="overview-card accent-blue" href="/dashboard/requests">
           <span className="overview-icon" aria-hidden="true">
-            ↗
+            <DashboardIcon name="arrow" size={20} />
           </span>
           <div>
             <p>Request management</p>
@@ -35,7 +34,7 @@ export default async function DashboardPage() {
         </Link>
         <Link className="overview-card accent-lilac" href="/dashboard/handoffs">
           <span className="overview-icon" aria-hidden="true">
-            ◎
+            <DashboardIcon name="handoffs" size={20} />
           </span>
           <div>
             <p>Customer care</p>
@@ -48,7 +47,7 @@ export default async function DashboardPage() {
           href="/dashboard/organization"
         >
           <span className="overview-icon" aria-hidden="true">
-            ◇
+            <DashboardIcon name="organization" size={20} />
           </span>
           <div>
             <p>Workspace</p>
@@ -75,7 +74,9 @@ export default async function DashboardPage() {
           </div>
           <div>
             <dt>Security</dt>
-            <dd>Active membership</dd>
+            <dd className="active-membership">
+              <span aria-hidden="true" /> Active membership
+            </dd>
           </div>
         </dl>
       </section>

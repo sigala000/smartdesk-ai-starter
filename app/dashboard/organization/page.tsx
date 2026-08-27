@@ -182,7 +182,7 @@ export default async function OrganizationPage({
           {feedback.text}
         </p>
       ) : null}
-      <div className="dashboard-card">
+      <div className="dashboard-card organization-summary-card">
         <p className="eyebrow">Organization profile</p>
         <h1 id="organization-title">{access.organization.name}</h1>
         <dl className="details-list">
@@ -196,13 +196,19 @@ export default async function OrganizationPage({
           </div>
           <div>
             <dt>Setup status</dt>
-            <dd>{organization.data?.lifecycle_status?.replaceAll("_", " ")}</dd>
+            <dd>
+              <span className="status-chip status-chip-neutral">
+                {organization.data?.lifecycle_status?.replaceAll("_", " ")}
+              </span>
+            </dd>
           </div>
           <div>
             <dt>SmartDesk plan</dt>
             <dd>
-              {subscription.data?.status?.replaceAll("_", " ") ??
-                "Not configured"}
+              <span className="status-chip">
+                {subscription.data?.status?.replaceAll("_", " ") ??
+                  "Not configured"}
+              </span>
             </dd>
           </div>
           <div>
@@ -257,7 +263,7 @@ export default async function OrganizationPage({
       </div>
 
       {manage ? (
-        <div className="dashboard-card">
+        <div className="dashboard-card organization-profile-card">
           <h2>Company profile</h2>
           <form action={updateOrganizationProfile} className="settings-form">
             <label htmlFor="contact-email">Business email</label>
@@ -319,8 +325,8 @@ export default async function OrganizationPage({
         </div>
       ) : null}
 
-      <div className="dashboard-grid">
-        <article className="dashboard-card">
+      <div className="dashboard-grid organization-catalogue-grid">
+        <article className="dashboard-card catalogue-card">
           <h2>Departments</h2>
           <ul className="plain-list">
             {departments.data?.map((item) => (
@@ -362,7 +368,7 @@ export default async function OrganizationPage({
             </form>
           ) : null}
         </article>
-        <article className="dashboard-card">
+        <article className="dashboard-card catalogue-card">
           <h2>Services</h2>
           <ul className="plain-list">
             {services.data?.map((item) => (
@@ -411,7 +417,7 @@ export default async function OrganizationPage({
         </article>
       </div>
 
-      <div className="dashboard-card">
+      <div className="dashboard-card organization-employees-card">
         <h2>Employees</h2>
         <ul className="plain-list">
           {members.data?.map((item) => (

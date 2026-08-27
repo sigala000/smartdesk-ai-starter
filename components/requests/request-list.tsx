@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DashboardIcon } from "@/components/dashboard/dashboard-icon";
 import { formatRequestStatus } from "@/lib/domain/requests";
 import type { RequestListResult } from "@/lib/dto/request-dto";
 
@@ -9,8 +10,14 @@ export function RequestList({ result, nextHref }: Props) {
   if (result.items.length === 0) {
     return (
       <div className="empty-state">
+        <span className="empty-state-icon">
+          <DashboardIcon name="empty" size={42} />
+        </span>
         <h2>No requests found</h2>
         <p>Try clearing one or more filters.</p>
+        <Link className="button button-secondary" href="/dashboard/requests">
+          Clear all filters
+        </Link>
       </div>
     );
   }

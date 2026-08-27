@@ -28,6 +28,7 @@ export default async function Page({ searchParams }: P) {
     runtime.access.context,
     parsed.data,
   );
+  const activeStatus = parsed.data.status ?? "open";
   return (
     <section>
       <header className="page-header">
@@ -41,11 +42,15 @@ export default async function Page({ searchParams }: P) {
         </div>
       </header>
       <nav aria-label="Handoff filters" className="queue-filters">
-        <Link href="/dashboard/handoffs?status=open">Open</Link>
-        {" · "}
-        <Link href="/dashboard/handoffs?status=active">Active</Link>
-        {" · "}
-        <Link href="/dashboard/handoffs?status=resolved">Resolved</Link>
+        {(["open", "active", "resolved"] as const).map((status) => (
+          <Link
+            aria-current={activeStatus === status ? "page" : undefined}
+            href={`/dashboard/handoffs?status=${status}`}
+            key={status}
+          >
+            {status[0].toUpperCase() + status.slice(1)}
+          </Link>
+        ))}
       </nav>
       {result.ok ? (
         <HandoffList handoffs={result.value} />

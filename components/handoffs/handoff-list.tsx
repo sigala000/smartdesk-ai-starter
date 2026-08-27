@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { DashboardIcon } from "@/components/dashboard/dashboard-icon";
 import type { HandoffSummary } from "@/lib/dto/handoff-dto";
 export function HandoffList({
   handoffs,
@@ -8,8 +10,14 @@ export function HandoffList({
   if (!handoffs.length)
     return (
       <div className="empty-state">
+        <span className="empty-state-icon">
+          <DashboardIcon name="handoffs" size={42} />
+        </span>
         <h2>No handoffs</h2>
-        <p>No customer conversations currently need human attention.</p>
+        <p>
+          No customer conversations currently need human attention. You&apos;re
+          all caught up for now.
+        </p>
       </div>
     );
   return (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { DashboardIcon } from "@/components/dashboard/dashboard-icon";
 import { navigationForRole } from "@/lib/auth/permissions";
 import type { EmployeeRole } from "@/lib/auth/roles";
 
@@ -10,6 +11,18 @@ type DashboardNavigationProps = Readonly<{ role: EmployeeRole }>;
 
 export function DashboardNavigation({ role }: DashboardNavigationProps) {
   const pathname = usePathname();
+  const icons: Readonly<
+    Record<
+      string,
+      "overview" | "requests" | "handoffs" | "organization" | "whatsapp"
+    >
+  > = {
+    "/dashboard": "overview",
+    "/dashboard/requests": "requests",
+    "/dashboard/handoffs": "handoffs",
+    "/dashboard/organization": "organization",
+    "/dashboard/whatsapp": "whatsapp",
+  };
   return (
     <nav aria-label="Employee dashboard" className="dashboard-nav">
       {navigationForRole(role).map((item) => (
@@ -29,7 +42,9 @@ export function DashboardNavigation({ role }: DashboardNavigationProps) {
           href={item.href}
           key={item.href}
         >
-          <span className="nav-dot" aria-hidden="true" />
+          <span className="dashboard-nav-icon">
+            <DashboardIcon name={icons[item.href]} />
+          </span>
           {item.label}
         </Link>
       ))}
