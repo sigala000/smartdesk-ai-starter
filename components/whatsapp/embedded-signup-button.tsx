@@ -152,9 +152,9 @@ export function EmbeddedSignupButton() {
     } catch (error) {
       setStatus("error");
       setMessage(
-        error instanceof Error
+        error instanceof Error && error.message !== "meta_sdk_unavailable"
           ? error.message
-          : "WhatsApp onboarding is unavailable.",
+          : "Meta could not open the secure connection window. Refresh the page and try again.",
       );
     }
   }

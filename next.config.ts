@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const scriptSources =
   process.env.NODE_ENV === "development"
-    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : "script-src 'self' 'unsafe-inline'";
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net"
+    : "script-src 'self' 'unsafe-inline' https://connect.facebook.net";
 
 const nextConfig: NextConfig = {
   agentRules: false,
@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; font-src 'self'; style-src 'self' 'unsafe-inline'; ${scriptSources}; connect-src 'self' https://*.supabase.co; object-src 'none'`,
+            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https://*.facebook.com https://*.fbcdn.net; font-src 'self'; style-src 'self' 'unsafe-inline'; ${scriptSources}; connect-src 'self' https://*.supabase.co https://graph.facebook.com https://www.facebook.com; frame-src https://www.facebook.com https://web.facebook.com; object-src 'none'`,
           },
         ],
       },

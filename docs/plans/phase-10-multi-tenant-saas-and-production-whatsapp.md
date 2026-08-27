@@ -346,6 +346,10 @@ printed. Meta portal/App Review/legal/payment actions remain manual.
 
 ## Progress log
 
+- [x] 2026-08-27 follow-up: corrected the production Content Security Policy
+  to allow only the Facebook SDK, Graph, image, and frame origins required by
+  Embedded Signup. Added regression coverage and replaced the internal
+  `meta_sdk_unavailable` code with a customer-safe retry message.
 - [x] 2026-08-27 follow-up: replaced silent organization-management action
   failures with explicit validation/database outcomes, pending button states,
   and accessible success/error feedback; rejected self-invitations and revoke
