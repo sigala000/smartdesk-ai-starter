@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 
+import { createFacebookSdkCallback } from "@/lib/meta/facebook-sdk-callback";
+
 type FacebookResponse = { authResponse?: { code?: string } };
 type FacebookSdk = {
   init(config: {
@@ -103,44 +105,51 @@ export function EmbeddedSignupButton() {
       };
       window.addEventListener("message", listener);
       const sdk = await loadSdk(stateBody.appId);
-      sdk.login(
-        async (response) => {
-          window.removeEventListener("message", listener);
-          const code = response.authResponse?.code;
-          const { wabaId, phoneNumberId } = assets.current;
-          if (!code || !wabaId || !phoneNumberId) {
-            setStatus("error");
-            setMessage(
-              "Meta did not return a complete WhatsApp connection. You can safely try again.",
-            );
-            return;
-          }
-          const completed = await fetch("/api/meta/whatsapp/complete", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              state: stateBody.state,
-              code,
-              wabaId,
-              phoneNumberId,
-            }),
-          });
-          const completedBody = (await completed.json()) as {
-            error?: { message?: string };
-          };
-          if (!completed.ok) {
-            setStatus("error");
-            setMessage(
-              completedBody.error?.message ??
-                "The WhatsApp connection could not be completed.",
-            );
-            return;
-          }
-          setStatus("success");
+      const completeSignup = async (response: FacebookResponse) => {
+        window.removeEventListener("message", listener);
+        const code = response.authResponse?.code;
+        const { wabaId, phoneNumberId } = assets.current;
+        if (!code || !wabaId || !phoneNumberId) {
+          setStatus("error");
           setMessage(
-            "WhatsApp is connected. Refresh this page to view its status.",
+            "Meta did not return a complete WhatsApp connection. You can safely try again.",
           );
-        },
+          return;
+        }
+        const completed = await fetch("/api/meta/whatsapp/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            state: stateBody.state,
+            code,
+            wabaId,
+            phoneNumberId,
+          }),
+        });
+        const completedBody = (await completed.json()) as {
+          error?: { message?: string };
+        };
+        if (!completed.ok) {
+          setStatus("error");
+          setMessage(
+            completedBody.error?.message ??
+              "The WhatsApp connection could not be completed.",
+          );
+          return;
+        }
+        setStatus("success");
+        setMessage(
+          "WhatsApp is connected. Refresh this page to view its status.",
+        );
+      };
+      sdk.login(
+        createFacebookSdkCallback(completeSignup, () => {
+          window.removeEventListener("message", listener);
+          setMessage(
+            "The WhatsApp connection could not be completed. You can safely try again.",
+          );
+          setStatus("error");
+        }),
         {
           config_id: stateBody.configurationId,
           response_type: "code",
