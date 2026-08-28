@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createFacebookSdkCallback } from "@/lib/meta/facebook-sdk-callback";
+import {
+  createFacebookSdkCallback,
+  createMetaAssetCollector,
+} from "@/lib/meta/facebook-sdk-callback";
 
 describe("Facebook SDK callback adapter", () => {
   it("gives Meta a synchronous function while continuing async work", async () => {
-    const handler = vi.fn(async (_value: string) => undefined);
+    const handler = vi.fn(async (value: string) => {
+      void value;
+    });
     const onError = vi.fn();
     const callback = createFacebookSdkCallback(handler, onError);
 
@@ -26,5 +31,28 @@ describe("Facebook SDK callback adapter", () => {
 
     callback("authorization-code");
     await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(failure));
+  });
+
+  it("waits for the phone assets when Meta sends them after login completes", async () => {
+    const collector = createMetaAssetCollector();
+    const pending = collector.wait(100);
+
+    collector.record({ wabaId: "waba-1" });
+    collector.record({ phoneNumberId: "phone-1" });
+
+    await expect(pending).resolves.toEqual({
+      wabaId: "waba-1",
+      phoneNumberId: "phone-1",
+    });
+  });
+
+  it("returns no assets when Meta never completes the session event", async () => {
+    vi.useFakeTimers();
+    const collector = createMetaAssetCollector();
+    const pending = collector.wait(100);
+
+    await vi.advanceTimersByTimeAsync(100);
+    await expect(pending).resolves.toBeUndefined();
+    vi.useRealTimers();
   });
 });

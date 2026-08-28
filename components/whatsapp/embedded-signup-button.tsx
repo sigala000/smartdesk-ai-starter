@@ -1,8 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import { createFacebookSdkCallback } from "@/lib/meta/facebook-sdk-callback";
+import {
+  createFacebookSdkCallback,
+  createMetaAssetCollector,
+} from "@/lib/meta/facebook-sdk-callback";
 
 type FacebookResponse = { authResponse?: { code?: string } };
 type FacebookSdk = {
@@ -50,7 +53,6 @@ export function EmbeddedSignupButton() {
     "idle" | "connecting" | "success" | "error"
   >("idle");
   const [message, setMessage] = useState("");
-  const assets = useRef<{ wabaId?: string; phoneNumberId?: string }>({});
 
   async function connect() {
     setStatus("connecting");
@@ -74,6 +76,7 @@ export function EmbeddedSignupButton() {
         throw new Error(
           stateBody.error?.message ?? "WhatsApp onboarding is unavailable.",
         );
+      const assetCollector = createMetaAssetCollector();
       const listener = (event: MessageEvent) => {
         if (
           event.origin !== "https://www.facebook.com" &&
@@ -95,52 +98,61 @@ export function EmbeddedSignupButton() {
             record.type === "WA_EMBEDDED_SIGNUP" &&
             (record.event === "FINISH" || record.event === "FINISH_ONLY_WABA")
           )
-            assets.current = {
+            assetCollector.record({
               wabaId: record.data?.waba_id,
               phoneNumberId: record.data?.phone_number_id,
-            };
+            });
         } catch {
           /* Ignore unrelated cross-window messages. */
         }
       };
       window.addEventListener("message", listener);
-      const sdk = await loadSdk(stateBody.appId);
-      const completeSignup = async (response: FacebookResponse) => {
+      let sdk: FacebookSdk;
+      try {
+        sdk = await loadSdk(stateBody.appId);
+      } catch (error) {
         window.removeEventListener("message", listener);
-        const code = response.authResponse?.code;
-        const { wabaId, phoneNumberId } = assets.current;
-        if (!code || !wabaId || !phoneNumberId) {
-          setStatus("error");
+        throw error;
+      }
+      const completeSignup = async (response: FacebookResponse) => {
+        try {
+          const code = response.authResponse?.code;
+          const assets = code ? await assetCollector.wait() : undefined;
+          if (!code || !assets) {
+            setStatus("error");
+            setMessage(
+              "Meta did not return a complete WhatsApp connection. You can safely try again.",
+            );
+            return;
+          }
+          const completed = await fetch("/api/meta/whatsapp/complete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              state: stateBody.state,
+              code,
+              wabaId: assets.wabaId,
+              phoneNumberId: assets.phoneNumberId,
+            }),
+          });
+          const completedBody = (await completed.json()) as {
+            error?: { message?: string };
+          };
+          if (!completed.ok) {
+            setStatus("error");
+            setMessage(
+              completedBody.error?.message ??
+                "The WhatsApp connection could not be completed.",
+            );
+            return;
+          }
+          setStatus("success");
           setMessage(
-            "Meta did not return a complete WhatsApp connection. You can safely try again.",
+            "WhatsApp is connected. Refresh this page to view its status.",
           );
-          return;
+        } finally {
+          window.removeEventListener("message", listener);
         }
-        const completed = await fetch("/api/meta/whatsapp/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            state: stateBody.state,
-            code,
-            wabaId,
-            phoneNumberId,
-          }),
-        });
-        const completedBody = (await completed.json()) as {
-          error?: { message?: string };
-        };
-        if (!completed.ok) {
-          setStatus("error");
-          setMessage(
-            completedBody.error?.message ??
-              "The WhatsApp connection could not be completed.",
-          );
-          return;
-        }
-        setStatus("success");
-        setMessage(
-          "WhatsApp is connected. Refresh this page to view its status.",
-        );
       };
       sdk.login(
         createFacebookSdkCallback(completeSignup, () => {
